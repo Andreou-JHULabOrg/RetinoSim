@@ -9,18 +9,18 @@ addpath(genpath('../modeling'));
 addpath(genpath('../aux'));
 addpath(genpath('../io'));
 
-videoFile = '../../../../spike_proc/data/video/cat_jump.mp4';
-
-nrows = 180;
-ncols = 240;
-numframes = 300;
+% videoFile = '../../../../spike_proc/data/video/cat_jump.mp4';
+videoFile = '../../../../spike_proc/data/video/simp_ball/simp_ball_3.mp4';
+nrows = 512;
+ncols = 512;
+numframes = 100;
 brightness_ratio = 1;
 inVid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes );
 
 %%
 
 params.frames_per_second            = 60;
-params.frame_show                   = 1;
+params.frame_show                   = 0;
 
 
 params.resample_threshold           = 0;
@@ -29,8 +29,8 @@ params.rng_settings                 = 1;
 if brightness_ratio == 1
 %     params.on_threshold             = 0.25*ones(size(inVid(:,:,1)));
 %     params.off_threshold            = 0.25*ones(size(inVid(:,:,1)));
-    params.on_threshold             = 0.2*ones(size(inVid(:,:,1)));
-    params.off_threshold            = 0.2*ones(size(inVid(:,:,1)));
+    params.on_threshold             = 0.1*ones(size(inVid(:,:,1)));
+    params.off_threshold            = 0.1*ones(size(inVid(:,:,1)));
 else
 %     params.on_threshold             = 0.25 * abs(1/log(brightness_ratio));
 %     params.off_threshold            = 0.25 * abs(1/log(brightness_ratio)); % roughly from DVS paper
@@ -58,9 +58,12 @@ params.inject_poiss_noise       = 0;
 params.write_frame = 0;
 params.write_frame_tag = 'leakrate_5_diffnet_1';
 
-[TD, ~, ~] = RetinaNvsModel(double(inVid), params);
+[TD, eventFrames, ~] = RetinaNvsModel(double(inVid), params);
 
-fprintf("%d events in simulated stream.\n", length(TD.x));
+%%
+
+
+outframes = videoBlend(inVid, eventFrames, 0, 1, 'test.avi');
 
 
 

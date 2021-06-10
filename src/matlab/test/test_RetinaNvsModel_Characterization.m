@@ -70,7 +70,7 @@ num_events = [];
 tol.on = 0.1;
 tol.off = 0.1;
 
-update_mode = 'isi';
+update_mode = 'epc';
 
 for epoch = 1:epochs+1
     fprintf("|-------------------EPOCH %d-------------------|\n", epoch);
