@@ -9,7 +9,7 @@ addpath(genpath('../modeling'));
 addpath(genpath('../aux'));
 addpath(genpath('../io'));
 
-videoFile = '../../../../spike_proc/data/video/cat_jump.mp4';
+videoFile = '../../../../videos/cat_jump.mp4';
 
 nrows = 180;
 ncols = 240;

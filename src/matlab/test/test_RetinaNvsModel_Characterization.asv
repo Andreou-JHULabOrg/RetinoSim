@@ -71,7 +71,7 @@ tol.on = 0.1;
 tol.off = 0.1;
 
 update_mode = 'epc';
-amacrine_spread.mode = 2; % 0: no spread; 1: spread before; 2: spread after
+amacrine_spread.mode = 0; % 0: no spread; 1: spread before; 2: spread after
 amacrine_spread.size = 9;
 amacrine_spread.std = 0.46;
 
@@ -127,7 +127,7 @@ for epoch = 1:epochs+1
     end
     
     if amacrine_spread.mode == 1
-        [events_per_cycle.on , events_per_cycle.off] = AmacrineSpread(events_per_cycle.on , events_per_cycle.off, amacrine_spread.size, amacrine_spread.std);
+        [events_per_cycle.on , events_per_cycle.off] = AmacrineSpread(events_per_cycle.on , events_per_cycle.off, amacrine_spread.size, amacrine_spread);
     end
     
     % ---------------------------------------------------------------------
@@ -168,34 +168,35 @@ end
 
 epochs = epoch;
 
-figure();
-subplot(2,1,1);
-histogram(events_per_cycle.on(:));
-hold on;
-histogram(epc_init.on(:));
-hold off;
-legend({'ON Events - Final','ON Events - Initial'},  'Interpreter', 'latex');
-title('Events/Cycle',  'Interpreter', 'latex');
-subplot(2,1,2);
-hold on;
-histogram(events_per_cycle.off(:));
-histogram(epc_init.off(:));
-hold off;
-legend({'OFF Events - Final','OFF Events - Initial'},  'Interpreter', 'latex');
-title('Events/Cycle',  'Interpreter', 'latex');
-
-figure();
-histogram(isi.on(:));
-hold on;
-histogram(isi.off(:));
-legend({'ON Events','OFF Events'},  'Interpreter', 'latex');
-title('ISI',  'Interpreter', 'latex');
-hold off;
+% figure();
+% subplot(2,1,1);
+% histogram(events_per_cycle.on(:));
+% hold on;
+% histogram(epc_init.on(:));
+% hold off;
+% legend({'ON Events - Final','ON Events - Initial'},  'Interpreter', 'latex');
+% title('Events/Cycle',  'Interpreter', 'latex');
+% subplot(2,1,2);
+% hold on;
+% histogram(events_per_cycle.off(:));
+% histogram(epc_init.off(:));
+% hold off;
+% legend({'OFF Events - Final','OFF Events - Initial'},  'Interpreter', 'latex');
+% title('Events/Cycle',  'Interpreter', 'latex');
+% 
+% figure();
+% histogram(isi.on(:));
+% hold on;
+% histogram(isi.off(:));
+% legend({'ON Events','OFF Events'},  'Interpreter', 'latex');
+% title('ISI',  'Interpreter', 'latex');
+% hold off;
 
 figure();
 plot(1:epochs, loss.on, 'r-*', 1:epochs, loss.off, 'b-o');
 title('Loss over time Before Filter(9 0.7)','Interpreter','latex');
-
-figure();
-plot(1:epochs, num_events, 'r-*');
-title('Number events over time','Interpreter','latex');
+%export_fig ../../../../figures/GaussianFig.pdf -append;
+% 
+% figure();
+% plot(1:epochs, num_events, 'r-*');
+% title('Number events over time','Interpreter','latex');
