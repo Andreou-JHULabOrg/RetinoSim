@@ -71,9 +71,9 @@ tol.on = 0.1;
 tol.off = 0.1;
 
 update_mode = 'epc';
-amacrine_spread.mode = 2; % 0: no spread; 1: spread before; 2: spread after
+amacrine_spread.mode = 0; % 0: no spread; 1: spread before; 2: spread after
 amacrine_spread.size = 9;
-amacrine_spread.std = 0.46;
+amacrine_spread.std = 0.47;
 
 for epoch = 1:epochs+1
     fprintf("|-------------------EPOCH %d-------------------|\n", epoch);
