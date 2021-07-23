@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/Users/susanliu/Documents/AndreouResearch/RetinaNVSmodel/src/c++/RetinaNvsModel/build",
-  "command": "/usr/bin/clang++  -isystem /usr/local/Cellar/opencv/4.5.2_4/include/opencv4 -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -std=gnu++11 -o CMakeFiles/WebCam.dir/main.cpp.o -c /Users/susanliu/Documents/AndreouResearch/RetinaNVSmodel/src/c++/RetinaNvsModel/main.cpp",
-  "file": "/Users/susanliu/Documents/AndreouResearch/RetinaNVSmodel/src/c++/RetinaNvsModel/main.cpp"
-}
-]

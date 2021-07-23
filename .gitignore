@@ -31,11 +31,10 @@
 *.out
 *.app
 
+*.make
+
+*.DS_Store*
 
 # Folders
 data/*
-src/**/build/*
-src/**/CMakeFiles/*
-src/**/.vscode/*
-
-*/**/.DS_Store
+ **/**/**/build/**
