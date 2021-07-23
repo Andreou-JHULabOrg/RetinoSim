@@ -71,6 +71,10 @@ tol.on = 0.1;
 tol.off = 0.1;
 
 update_mode = 'epc';
+amacrine_spread.mode = 0; % 0: no spread; 1: spread before; 2: spread after
+amacrine_spread.size = 9;
+amacrine_spread.std = 0.47;
+
 
 for epoch = 1:epochs+1
     fprintf("|-------------------EPOCH %d-------------------|\n", epoch);
@@ -123,6 +127,10 @@ for epoch = 1:epochs+1
         epc_init = events_per_cycle;
     end
     
+    if amacrine_spread.mode == 1
+        [events_per_cycle.on , events_per_cycle.off] = AmacrineSpread(events_per_cycle.on , events_per_cycle.off, amacrine_spread.size, amacrine_spread.std);
+    end
+    
     % ---------------------------------------------------------------------
     step = "...........3. AMACRINE UPDATE............";
     fprintf("%s\n",step);
@@ -138,14 +146,15 @@ for epoch = 1:epochs+1
         ideal.off = isi_ideal(1);
     end
     
-    [ threshold_on_update, threshold_off_update, loss_on, loss_off ] = AmacrineUpdate( learning_rate, ...
+    [ threshold_on_update, threshold_off_update, loss_on, loss_off ] = AmacrineUpdateGaussian( learning_rate, ...
         events_per_cycle, ...
         isi, ...
         ideal, ...
         update_mode, ...
         params, ...
         intensity_params, ...
-        size(frames,3));
+        size(frames,3), ...
+        amacrine_spread);
         
     fprintf("On loss: %.4f Off Loss: %.4f\n", loss_on, loss_off);
     loss.on = [loss.on loss_on ];
@@ -186,7 +195,7 @@ hold off;
 
 figure();
 plot(1:epochs, loss.on, 'r-*', 1:epochs, loss.off, 'b-o');
-title('Loss over time','Interpreter','latex');
+title('Loss over time Before Filter(9 0.7)','Interpreter','latex');
 
 figure();
 plot(1:epochs, num_events, 'r-*');

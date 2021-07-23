@@ -1,4 +1,4 @@
-function [TD, eventFrames, rng_settings] = RetinaNvsModel(inVid, params)
+function [TD, eventFrames, rng_settings, grayFrames, curFrames] = RetinaNvsModel(inVid, params)
 %RETINANVSMODEL Model that converts video into events using Retina-inspired NVS model 
 %AUTHOR : Jonah P. Sengupta
 %DATE : 8-19-20
@@ -60,17 +60,12 @@ else
     grayFrames = inVid + 1;
 end
 
-%%%%% ------------------------------------------------- Log compress frames 
-
-
-logFrames = log(grayFrames);
-
-nFrames = size(logFrames,3);
+nFrames = size(grayFrames,3);
 
 eventCt = 1;
 cur.T = 0;
-
-eventFrames = zeros(size(logFrames,1), size(logFrames,2), 3, nFrames);
+curFrames = [];
+eventFrames = zeros(size(grayFrames,1), size(grayFrames,2), 3, nFrames);
 
 %%%%% -------------------------------- Create fixed pattern threshold noise
 
@@ -79,30 +74,29 @@ threshold_variance_off = (params.percent_threshold_variance/100)*params.off_thre
 
 if params.resample_threshold
     rng_settings = rng;
-    on_threshold = params.on_threshold + normrnd(0,threshold_variance_on, size(logFrames(:,:,1)));
-    off_threshold = params.off_threshold + normrnd(0,threshold_variance_off, size(logFrames(:,:,1)));
+    on_threshold = params.on_threshold + normrnd(0,threshold_variance_on, size(grayFrames(:,:,1)));
+    off_threshold = params.off_threshold + normrnd(0,threshold_variance_off, size(grayFrames(:,:,1)));
 else
     rng_settings = rng(params.rng_settings); % use given settings to reproduce same mismatch distribution as prior iteration
-    on_threshold = params.on_threshold + normrnd(0,threshold_variance_on, size(logFrames(:,:,1)));
-    off_threshold = params.off_threshold + normrnd(0,threshold_variance_off, size(logFrames(:,:,1)));
+    on_threshold = params.on_threshold + normrnd(0,threshold_variance_on, size(grayFrames(:,:,1)));
+    off_threshold = params.off_threshold + normrnd(0,threshold_variance_off, size(grayFrames(:,:,1)));
 end
 
 %%%%% -------------------------------------------- Calculate Shot Noise RMS 
-maxLog = max(max(logFrames(:,:,1)));
+maxLog = max(max(grayFrames(:,:,1)));
 
 timescale           = 10e-6; % S
 q                   = 1.62e-19; % C
 average_current     = 1e-9; % A
 num_devices         = 10;
-pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-logFrames(:,:,1));
-pixel_fe_noise_past = normrnd(0,pix_shot_rate,size(logFrames(:,:,1)));
+pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-grayFrames(:,:,1));
+pixel_fe_noise_past = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
 
-sae = zeros(size(logFrames(:,:,1)));
-lp_log_in = zeros(size(logFrames(:,:,1)));
+sae = zeros(size(grayFrames(:,:,1)));
+lp_log_in = zeros(size(grayFrames(:,:,1)));
 
-%%%%% ------------------------- Initialize membrane voltages to half range
+I_mem = 128*ones(size(grayFrames(:,:,1)));
 
-I_mem = log(128)*ones(size(logFrames(:,:,1)));
 
 %%%%% ----------------------------------------------- Set leakage currents
 
@@ -112,31 +106,36 @@ leak_rate = params.leak_ba_rate;
 
 %%%%% ----------------------------------------------- OPL spatial response
 
-horiz_spatial_response = -1*fspecial('gaussian', 15, 2.5);
-pr_spatial_response = fspecial('gaussian',15, 2);
+% horiz_spatial_response = fspecial('gaussian', 15, 2.5);
+% pr_spatial_response = fspecial('gaussian',15, 2);
 
-total_spatial_response = 1.1*(pr_spatial_response + horiz_spatial_response);
-% total_spatial_response = pr_spatial_response;
-tic;
+%total_spatial_response = 1.1*(pr_spatial_response + horiz_spatial_response);
+
+
 for f = 2:nFrames
-%    fprintf("[RetinaNVS-INFO] Converting Frame : %d \n", f); % Uncomment to receive updates on frame processing
-    maxLog = max(max(logFrames(:,:,f)));
+%     fprintf("Processing Frame : %d \n", f);
+    maxLog = max(max(grayFrames(:,:,f)));
+
     if params.enable_pixel_variance
-        pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-logFrames(:,:,f));
-        pixel_fe_noise = normrnd(0,pix_shot_rate,size(logFrames(:,:,1)));
-        pastFrame = logFrames(:,:,f-1) + pixel_fe_noise_past;
-        cur.Frame = logFrames(:,:,f) + pixel_fe_noise;
+        pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-grayFrames(:,:,f));
+        pixel_fe_noise = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
+        pastFrame = grayFrames(:,:,f-1) + pixel_fe_noise_past;
+        cur.Frame = grayFrames(:,:,f) + pixel_fe_noise;
         pixel_fe_noise_past = pixel_fe_noise;
     else 
-        pastFrame = logFrames(:,:,f-1);
-        cur.Frame = logFrames(:,:,f);
+        pastFrame = grayFrames(:,:,f-1);
+        cur.Frame = grayFrames(:,:,f);
     end
     
     % ---------------------------------------------------- horizontal cells 
     % ------------------ Diffusive net implements a spatial low pass filter 
     if params.enable_diffusive_net
-          cur.Frame = imfilter(cur.Frame, total_spatial_response);
-          pastFrame = imfilter(pastFrame, total_spatial_response);
+%         pastFrame = imgaussfilt(pastFrame, sqrt(exp(1)));
+%         cur.Frame = imgaussfilt(cur.Frame, sqrt(exp(1)));
+          cur.Frame = NormalizeContrast(cur.Frame);
+          pastFrame = NormalizeContrast(pastFrame);
+          curFrames(:,:,f) = cur.Frame;
+
     end
     
     I_mem_p = I_mem;
@@ -204,7 +203,7 @@ for f = 2:nFrames
             
             if nevents > 1
                 ts = cur.T:((1/params.frames_per_second)/nevents):cur.T+(1/params.frames_per_second);
-                I_mem(ii,jj) = log(128);
+                I_mem(ii,jj) = (128);
             elseif nevents == 1
                 ts = cur.T + (1/params.frames_per_second)/2;
             end
@@ -272,7 +271,7 @@ if (params.frame_show == 1)
     x0 = x0 + dx + 0.2;
     ax(2).Position=[x0 y0 dx dy];
     
-    im(1) = imagesc(ax(1),logFrames(:,:,1));
+    im(1) = imagesc(ax(1),grayFrames(:,:,1));
     ax(1).Title.String = ['Log Intensity: Frame ' num2str(1)];
     set(ax(1), 'xtick', [], 'ytick', []);
     colormap(gray);
@@ -285,7 +284,7 @@ if (params.frame_show == 1)
     for ii = 2:nFrames
         ax(1).Title.String = ['Log Intensity: Frame ' num2str(ii)];
         ax(2).Title.String = ['Accumulated Events: Frame ' num2str(ii)];
-        set(im(1),'cdata',logFrames(:,:,ii));
+        set(im(1),'cdata',grayFrames(:,:,ii));
         set(im(2),'cdata',eventFrames(:,:,:,ii));
         drawnow;
         pause(1/params.frames_per_second);
@@ -295,7 +294,6 @@ end
 
 [TD.ts, idx] = sort(TD.ts);
 TD.ts = TD.ts';
-TD.ts = uint32((TD.ts - TD.ts(1))*1e6); % zero and bring to microsecond resolution
 TD.x = uint16(TD.x(idx)' - 1); % bring to 0 to sensor width
 TD.y = uint16(TD.y(idx)' - 1); % bring to 0 to sensor height
 TD.p = int8(TD.p(idx)');
