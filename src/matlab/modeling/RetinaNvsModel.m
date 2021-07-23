@@ -33,11 +33,26 @@ function [TD, eventFrames, rng_settings, grayFrames, curFrames] = RetinaNvsModel
 %   NxMxF video containing the simulated events
 
 %to-do
-% 3. Amacrine : digital amacrine cells. 
 % 4. split into functions to clean up code
 % 5. live version
 
+fprintf("\n---------------------------------------------------------------\n\n");
+fprintf("[RetinaNVS-INFO] Generating spikes from RetinaNvs model...\n");
+fprintf("\n---------------------------------------------------------------\n");
+
+
+fprintf("[RetinaNVS-INFO] Using parameters:\n");
+
+param_names = fields(params);
+for p = 1:length(param_names)
+    if size(params.(param_names{p})) == 1
+        fprintf("[RetinaNVS-INFO] %s: %d\n", param_names{p}, params.(param_names{p}));
+    end
+end
+
 addpath(genpath('../aux'));
+
+%%%%% ------------------------------------------------ Convert to grayscale 
 
 if length(size(inVid)) == 4
     grayFrames = 0.299*inVid(:,:,1,:) + 0.587*inVid(:,:,2,:)+0.114*inVid(:,:,3,:) + 1;
@@ -82,10 +97,14 @@ lp_log_in = zeros(size(grayFrames(:,:,1)));
 
 I_mem = 128*ones(size(grayFrames(:,:,1)));
 
+
+%%%%% ----------------------------------------------- Set leakage currents
+
+
 % leak_rate = normrnd(params.leak_ba_rate, sqrt(params.leak_ba_rate/2), size(logFrames(:,:,1)));
 leak_rate = params.leak_ba_rate;
 
-fprintf("Generating spikes from RetinaNvs model...\n");
+%%%%% ----------------------------------------------- OPL spatial response
 
 % horiz_spatial_response = fspecial('gaussian', 15, 2.5);
 % pr_spatial_response = fspecial('gaussian',15, 2);
@@ -96,6 +115,7 @@ fprintf("Generating spikes from RetinaNvs model...\n");
 for f = 2:nFrames
 %     fprintf("Processing Frame : %d \n", f);
     maxLog = max(max(grayFrames(:,:,f)));
+
     if params.enable_pixel_variance
         pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-grayFrames(:,:,f));
         pixel_fe_noise = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
@@ -115,6 +135,7 @@ for f = 2:nFrames
           cur.Frame = NormalizeContrast(cur.Frame);
           pastFrame = NormalizeContrast(pastFrame);
           curFrames(:,:,f) = cur.Frame;
+
     end
     
     I_mem_p = I_mem;
@@ -144,12 +165,6 @@ for f = 2:nFrames
             imwrite(grayFrames(:,:,f)/max(max(grayFrames(:,:,f))),[outputdir 'in_' params.write_frame_tag '_.jpg'], 'JPEG');
             imwrite(cur.Frame/max(max(cur.Frame)),[outputdir 'pr_' params.write_frame_tag '_.jpg'], 'JPEG');
             imwrite(I_mem/max(max(I_mem)),[outputdir 'bc_' params.write_frame_tag '_.jpg'],'JPEG');
-%             plot_vars = {'on_threshold', 'off_threshold', 'leak_rate' ,'pixel_fe_noise'};
-%             for fig =  1:numel(plot_vars)
-%                 figure();
-%                 imagesc(eval(plot_vars{fig}));
-%                 title(plot_vars{fig});
-%             end
             figure();
             histogram(on_threshold(:)); 
             hold on; histogram(off_threshold(:)); hold off; 
@@ -267,7 +282,6 @@ if (params.frame_show == 1)
     
     
     for ii = 2:nFrames
-%         fprintf("Frame : %d\n", ii);
         ax(1).Title.String = ['Log Intensity: Frame ' num2str(ii)];
         ax(2).Title.String = ['Accumulated Events: Frame ' num2str(ii)];
         set(im(1),'cdata',grayFrames(:,:,ii));
@@ -290,6 +304,12 @@ if params.inject_poiss_noise
     TD = CombineStreams(TD, TDnoise, 'isnoise', 0, 1);
 end
 
+time_ = toc;
+
+fprintf("\n---------------------------------------------------------------\n\n");
+fprintf("[RetinaNVS-INFO] RetinaNVSModel complete: Generated %d events from %d frames of %dx%d video.\n", length(TD.x), size(inVid,3), size(inVid,1), size(inVid,2));
+fprintf("[RetinaNVS-INFO] Event generation took %.5f seconds.\n", time_);
+fprintf("\n---------------------------------------------------------------\n");
 
 end
 

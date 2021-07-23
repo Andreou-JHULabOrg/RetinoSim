@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+
+# Folders
+data/*
+src/**/build/*
+src/**/CMakeFiles/*
+src/**/.vscode/*
+
+*/**/.DS_Store
