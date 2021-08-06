@@ -34,8 +34,6 @@
 
 # Folders
 data/*
-src/**/build/*
-src/**/CMakeFiles/*
-src/**/.vscode/*
+src/cpp/build
 
-*/**/.DS_Store
+.DS_Store
