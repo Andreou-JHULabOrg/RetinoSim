@@ -61,6 +61,7 @@ params.enable_diffusive_net         = 1;
 params.enable_temporal_low_pass     = 1;
 
 params.enable_leak_ba           = 1;
+
 params.leak_ba_rate             = 40;
 %params.enable_leak_ba           = 0;
 %params.leak_ba_rate             = 5;
@@ -70,7 +71,7 @@ params.refractory_period        = 1 * (1/params.frames_per_second);
 % params.refractory_period        = 1;
 
 
-params.inject_spike_jitter      = 1;
+params.inject_spike_jitter      = 0;
 
 params.inject_poiss_noise       = 0;
 

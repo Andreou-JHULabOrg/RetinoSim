@@ -37,4 +37,7 @@
 
 # Folders
 data/*
- **/**/**/build/**
+src/cpp/build
+
+.DS_Store
+

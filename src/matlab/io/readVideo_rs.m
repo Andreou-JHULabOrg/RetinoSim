@@ -4,6 +4,7 @@ v = VideoReader(videoFile);
 framect = 1;
 for ii = 1:numframes
     frame = readFrame(v);
+
     
     if mod(ii,sampRate) == 0
         outVid(:, : , framect) = imresize(rgb2gray(frame), [nrows ncols]);

@@ -40,7 +40,7 @@ fprintf("\n---------------------------------------------------------------\n\n")
 fprintf("[RetinaNVS-INFO] Generating spikes from RetinaNvs model...\n");
 fprintf("\n---------------------------------------------------------------\n");
 
-
+tic;
 fprintf("[RetinaNVS-INFO] Using parameters:\n");
 
 param_names = fields(params);
@@ -132,10 +132,10 @@ for f = 2:nFrames
 %         cur.Frame = imgaussfilt(cur.Frame, sqrt(exp(1)));
           cur.Frame = NormalizeContrast(cur.Frame);
           pastFrame = NormalizeContrast(pastFrame);
-          curFrames(:,:,f) = cur.Frame;
+          
 
     end
-    
+    curFrames(:,:,f) = cur.Frame;
     I_mem_p = I_mem;
     
     if params.enable_leak_ba
