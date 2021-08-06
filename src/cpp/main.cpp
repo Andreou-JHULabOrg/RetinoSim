@@ -31,6 +31,7 @@ struct Parameter {
     int frames_per_second = 60;   
     int enable_refractory_period = 1;
     double refractory_period = 1.0 / frames_per_second;
+
     double threshold = 20.0;
     Mat on_threshold, off_threshold;
 };
@@ -64,6 +65,7 @@ int ReadVideo(vector<Mat> &frames) {
     return count;
 }
 
+
 double Normrnd(double mean, double stdDev) {
     double u, v, s;
     do {
@@ -81,6 +83,7 @@ Mat AddNormrnd(Mat frame, double mean, double sigma) {
         for (int i = 0; i < cols; i++)
             result.at<float>(k, i) =
                 frame.at<float>(k, i) + Normrnd(mean, sigma);
+
     }
     return result;
 }
@@ -108,6 +111,7 @@ void NormalizeContrast(Mat &frame) {
     Mat img_c(rows, cols, CV_32F);
     img_c = alpha * pr - horiz;
     divide(img_c, horiz, img_c, 1, CV_32F);
+
     img_c -= (alpha - 1);  // bring to 0
     double min, max;
     minMaxLoc(img_c, &min, &max);
@@ -133,6 +137,18 @@ void processFrames(Parameter params) {
     Mat curFrames[numFrames];
     curFrames[0] = frames[0];
     namedWindow("Webcam", WINDOW_AUTOSIZE);
+
+}
+
+void processFrames(Parameter params, VideoCapture camera) {
+    Mat frames[numFrames];  // array of frames
+    double tframe = (double)1 / params.frames_per_second;
+    for (int k = 0; k < numFrames; k++) {
+        camera >> frames[k];  // capture the next frames[k] from the webcam
+        cvtColor(frames[k], frames[k], COLOR_BGR2GRAY);
+    }
+    int rows = frames[0].rows;
+    int cols = frames[0].cols;
     double threshold_variance =
         params.percent_threshold_variance / 100 * params.threshold;
     // Mat threshold_variance_on(rows, cols, CV_64F, threshold_variance);
@@ -259,7 +275,7 @@ void processFrames(Parameter params) {
             imshow("Webcam", frame);  // show the image on the window
             // wait (25ms) for a key to be pressed
             if (waitKey(25) >= 0) break;
-        }
+        }   
     }
     return;
 }
@@ -270,5 +286,6 @@ int main(int, char **) {
     Parameter params;
     processFrames(params);
     destroyAllWindows();
+
     return 0;
 }

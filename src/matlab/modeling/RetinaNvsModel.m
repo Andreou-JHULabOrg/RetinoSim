@@ -104,12 +104,9 @@ I_mem = 128*ones(size(grayFrames(:,:,1)));
 % leak_rate = normrnd(params.leak_ba_rate, sqrt(params.leak_ba_rate/2), size(logFrames(:,:,1)));
 leak_rate = params.leak_ba_rate;
 
-%%%%% ----------------------------------------------- OPL spatial response
 
-% horiz_spatial_response = fspecial('gaussian', 15, 2.5);
-% pr_spatial_response = fspecial('gaussian',15, 2);
+tic;
 
-%total_spatial_response = 1.1*(pr_spatial_response + horiz_spatial_response);
 
 
 for f = 2:nFrames
@@ -127,6 +124,7 @@ for f = 2:nFrames
         cur.Frame = grayFrames(:,:,f);
     end
     
+    %%%%% ----------------------------------------------- OPL spatial response
     % ---------------------------------------------------- horizontal cells 
     % ------------------ Diffusive net implements a spatial low pass filter 
     if params.enable_diffusive_net
@@ -145,7 +143,8 @@ for f = 2:nFrames
     end
     % -------- Implements temporal low pass based on photoreceptor response 
     if params.enable_temporal_low_pass
-        temporal_lp_response = max(cur.Frame/max(max(cur.Frame)),.05);
+%         temporal_lp_response = max(cur.Frame/max(max(cur.Frame)),.05);
+        temporal_lp_response = 0.9;
         cur.Frame = cur.Frame.*temporal_lp_response + (1-temporal_lp_response).*pastFrame;
         pastFrame = pastFrame.*temporal_lp_response + (1-temporal_lp_response).*lp_log_in;
         lp_log_in = pastFrame;
@@ -293,7 +292,7 @@ if (params.frame_show == 1)
 end
 
 [TD.ts, idx] = sort(TD.ts);
-TD.ts = TD.ts';
+TD.ts = TD.ts' * 1e6;
 TD.x = uint16(TD.x(idx)' - 1); % bring to 0 to sensor width
 TD.y = uint16(TD.y(idx)' - 1); % bring to 0 to sensor height
 TD.p = int8(TD.p(idx)');

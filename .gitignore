@@ -31,9 +31,13 @@
 *.out
 *.app
 
+*.make
+
+*.DS_Store*
 
 # Folders
 data/*
 src/cpp/build
 
 .DS_Store
+
