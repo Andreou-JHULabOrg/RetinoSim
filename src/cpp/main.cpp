@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include <chrono>
+#include <random>
 #include <vector>
 
 #include "iostream"
@@ -9,29 +11,30 @@ using namespace std;
 using namespace cv;
 
 // global variables
-int maxFrames = 300;
 double timescale = 10e-6;       // S
 double q = 1.62e-19;            // C
 double average_current = 1e-9;  // A
 int num_devices = 10;
 int ksize = 15;
-int rows = 180;
-int cols = 240;
+int rows = 512;
+int cols = 512;
+int numFrames = 200;
 
 struct Parameter {
     double percent_threshold_variance = 2.5;
-    int frame_show = 0; 
-    int enable_threshold_variance = 0;
+    int frame_show = 1;
+    int enable_threshold_variance = 1;
     int enable_pixel_variance = 0;
     int enable_diffusive_net = 1;
-    int enable_temporal_low_pass = 0;  
+    int enable_temporal_low_pass = 1;
 
-    int enable_leak_ba = 0;
-    int leak_ba_rate = 200;
-    int frames_per_second = 60;   
+    int enable_leak_ba = 1;
+    int leak_ba_rate = 40;
+    int frames_per_second = 30;
     int enable_refractory_period = 1;
     double refractory_period = 1.0 / frames_per_second;
 
+    int inject_spike_jitter = 1;
     double threshold = 20.0;
     Mat on_threshold, off_threshold;
 };
@@ -58,15 +61,28 @@ int ReadVideo(vector<Mat> &frames) {
         cvtColor(frame, frame, COLOR_BGR2GRAY);
         resize(frame, frame, Size(cols, rows), 0, 0, INTER_CUBIC);
         frames.push_back(frame);
-        if (count >= maxFrames) break;
+        if (count >= numFrames) break;
         count++;
     }
     video.release();
     return count;
 }
 
+double Normrnd(float mean, float stdDev) {
+    // double u, v, s;
+    // do {
+    //     u = ((double)rand() / (double)RAND_MAX) * 2.0 - 1.0;
+    //     v = ((double)rand() / (double)RAND_MAX) * 2.0 - 1.0;
+    //     s = u * u + v * v;
+    // } while (s >= 1 || s == 0);
+    // double mul = sqrt(-2.0 * log(s) / s);
+    // return mean + stdDev * u * mul;
+    normal_distribution<float> dist(mean, stdDev);
+    default_random_engine generator;
+    return dist(generator);
+}
 
-double Normrnd(double mean, double stdDev) {
+double Normrnd_(double mean, double stdDev) {
     double u, v, s;
     do {
         u = ((double)rand() / (double)RAND_MAX) * 2.0 - 1.0;
@@ -83,36 +99,29 @@ Mat AddNormrnd(Mat frame, double mean, double sigma) {
         for (int i = 0; i < cols; i++)
             result.at<float>(k, i) =
                 frame.at<float>(k, i) + Normrnd(mean, sigma);
-
     }
     return result;
 }
 
-void Normrnd(Mat &frame, double mean, Mat sigma) {
+void Normrnd(Mat &frame, float mean, Mat sigma) {
     sigma.convertTo(sigma, CV_32F);
     for (int k = 0; k < rows; k++) {
         for (int i = 0; i < cols; i++) {
-            double sig = sigma.at<float>(k, i);
+            float sig = sigma.at<float>(k, i);
             frame.at<float>(k, i) = Normrnd(mean, sig);
         }
     }
 }
 
 void NormalizeContrast(Mat &frame) {
-    double alpha = 5.0;
-    int ksize = 9;
+    double alpha = 1;
+    int ksize = 15;
     Mat horiz(rows, cols, CV_32F);
     Mat pr(rows, cols, CV_32F);
     GaussianBlur(frame, horiz, Size(ksize, ksize), 2.5, 2.5, BORDER_REPLICATE);
     GaussianBlur(frame, pr, Size(ksize, ksize), 2, 2, BORDER_REPLICATE);
-    // cout << horiz;
-    // cout << pr;
-
     Mat img_c(rows, cols, CV_32F);
     img_c = alpha * pr - horiz;
-    divide(img_c, horiz, img_c, 1, CV_32F);
-
-    img_c -= (alpha - 1);  // bring to 0
     double min, max;
     minMaxLoc(img_c, &min, &max);
     img_c = img_c - min;  // bring to positive
@@ -121,38 +130,20 @@ void NormalizeContrast(Mat &frame) {
     // cout << frame;
 }
 
-void processFrames(Parameter params) {
-    // Mat frames[numFrames];  // array of frames
-    double tframe = (double)1 / params.frames_per_second;
-    vector<Event> td;
-    // for (int k = 0; k < numFrames; k++) {
-    //     camera >> frames[k];  // capture the next frames[k] from the webcam
-    //     cvtColor(frames[k], frames[k], COLOR_BGR2GRAY);
-    // }
-    // create a window to display the images from the webcam
-    vector<Mat> frames;
-    int numFrames = ReadVideo(frames);
-    cout << "-----Read " << numFrames << " frames-----" << endl;
-    if (numFrames == 0) return;
-    Mat curFrames[numFrames];
-    curFrames[0] = frames[0];
-    namedWindow("Webcam", WINDOW_AUTOSIZE);
-
+void UniformInit(double *arr, double start, double spacing, int num) {
+    int idx = 0;
+    for (double k = start; idx < num; k += spacing, idx++) arr[idx] = k;
 }
 
-void processFrames(Parameter params, VideoCapture camera) {
-    Mat frames[numFrames];  // array of frames
+void processFrames(Parameter params) {
     double tframe = (double)1 / params.frames_per_second;
-    for (int k = 0; k < numFrames; k++) {
-        camera >> frames[k];  // capture the next frames[k] from the webcam
-        cvtColor(frames[k], frames[k], COLOR_BGR2GRAY);
-    }
-    int rows = frames[0].rows;
-    int cols = frames[0].cols;
+    vector<Event> td;
+    VideoCapture camera;
+    if (!camera.open(0)) return;
+    vector<Mat> frames;
+    vector<Mat> curFrames;
     double threshold_variance =
         params.percent_threshold_variance / 100 * params.threshold;
-    // Mat threshold_variance_on(rows, cols, CV_64F, threshold_variance);
-    // Mat threshold_variance_off(rows, cols, CV_64F, threshold_variance);
     params.on_threshold = Mat(rows, cols, CV_32F, params.threshold);
     params.off_threshold = Mat(rows, cols, CV_32F, params.threshold);
     Mat on_threshold = AddNormrnd(params.on_threshold, 0, threshold_variance);
@@ -172,12 +163,29 @@ void processFrames(Parameter params, VideoCapture camera) {
         sqrt(2 * num_devices * average_current * q * (1 / timescale)) /
         average_current;
     Mat pix_shot_rate;
-    for (int k = 1; k < numFrames; k++)  // starting from the second frame
-    {
-        frames[k].convertTo(curFrame, CV_32F);
+
+    // vector<Mat> frames;
+    // int numFrames = ReadVideo(frames);
+    // cout << "-----Read " << numFrames << " frames-----" << endl;
+    // if (numFrames == 0) return;
+    // clock_t tic = clock();
+    for (int fr = 0; ; fr++) {
+        Mat frame;
+        camera >> frame;  // capture the next frames[k] from the webcam
+        cvtColor(frame, frame, COLOR_BGR2GRAY);
+        resize(frame, frame, Size(cols, rows), 0, 0, INTER_CUBIC);
+        frames.push_back(frame);
+        if (fr == 0) {
+            curFrames.push_back(frames[0]);
+            continue;
+        }
+        namedWindow("Webcam", WINDOW_AUTOSIZE);  // create a window to display
+                                                 // the images from the webcam
+        frames[fr].convertTo(curFrame, CV_32F);
         minMaxLoc(curFrame, &min, &max);
+
         if (params.enable_pixel_variance) {
-            if (k == 1) {  // needs to calculate past noise first
+            if (fr == 1) {  // needs to calculate past noise first
                 Mat frame_32f;
                 double pmin, pmax;
                 frames[0].convertTo(frame_32f, CV_32F);
@@ -185,17 +193,14 @@ void processFrames(Parameter params, VideoCapture camera) {
                 pix_shot_rate = noise * (max - frame_32f);
                 Normrnd(pixel_fe_noise_past, 0.0, pix_shot_rate);
             }
+
             pix_shot_rate = noise * (max - curFrame);
             Normrnd(pixel_fe_noise, 0.0, pix_shot_rate);
-            // cout << pixel_fe_noise;
-            // minMaxLoc(pixel_fe_noise, &min, &max);
-            // cout << max << endl;
-            add(frames[k - 1], pixel_fe_noise_past, pastFrame, Mat(), CV_32F);
-            add(frames[k], pixel_fe_noise, curFrame, Mat(), CV_32F);
+            add(frames[fr - 1], pixel_fe_noise_past, pastFrame, Mat(), CV_32F);
+            add(frames[fr], pixel_fe_noise, curFrame, Mat(), CV_32F);
             pixel_fe_noise_past = pixel_fe_noise.clone();
-            // cout << curFrame;
         } else {
-            pastFrame = frames[k - 1].clone();
+            pastFrame = frames[fr - 1].clone();
             pastFrame.convertTo(pastFrame, CV_32F);
         }
         // horizontal cells
@@ -203,21 +208,24 @@ void processFrames(Parameter params, VideoCapture camera) {
             NormalizeContrast(curFrame);
             NormalizeContrast(pastFrame);
         }
-        curFrame.convertTo(curFrames[k], CV_8U);
+        curFrame.convertTo(frame, CV_8U);
+        curFrames.push_back(frame);
+        
         I_mem_p = I_mem.clone();
 
         if (params.enable_leak_ba) {
             I_mem -= tframe * params.leak_ba_rate;
         }
         if (params.enable_temporal_low_pass) {
-            minMaxLoc(curFrame, &min, &max);
-            Mat temporal_lp_response = curFrame / max;
-            temporal_lp_response.setTo(
-                0.05, temporal_lp_response < 0.05);  // low-pass filter
-            curFrame = curFrame.mul(temporal_lp_response) +
-                       pastFrame.mul(1 - temporal_lp_response);
-            pastFrame = pastFrame.mul(temporal_lp_response) +
-                        lp_log_in.mul(1 - temporal_lp_response);
+            // minMaxLoc(curFrame, &min, &max);
+            // Mat temporal_lp_response = curFrame / max;
+            // temporal_lp_response.setTo(
+            //     0.05, temporal_lp_response < 0.05);  // low-pass filter
+            double temporal_lp_response = 0.9;
+            curFrame = curFrame * temporal_lp_response +
+                       pastFrame * (1 - temporal_lp_response);
+            pastFrame = pastFrame * temporal_lp_response +
+                        lp_log_in * (1 - temporal_lp_response);
             lp_log_in = pastFrame.clone();
         }
         // bipolar cells
@@ -247,19 +255,23 @@ void processFrames(Parameter params, VideoCapture camera) {
                     p = -1;
                     nevents = floor(abs(mem - mem_p) / theta_off);
                 }
-                double ts = T;
-                if (nevents > 1)
+                double ts[nevents];
+                if (nevents > 1) {
                     I_mem.at<float>(ii, jj) = 128;
-                else if (nevents == 1)
-                    ts = T + tframe / 2;
-                for (int ee = 0; ee < nevents; ee++, ts += tframe / nevents) {
-                    Event e = {jj, ii, p, (double)ts};
+                    UniformInit(ts, T, tframe / nevents, nevents);
+                } else if (nevents == 1)
+                    ts[0] = T + tframe / 2;
+                for (int ee = 0; ee < nevents; ee++) {
+                    if (params.inject_spike_jitter)
+                        ts[ee] += Normrnd(0, tframe / 100);
+
+                    Event e = {jj, ii, p, (double)ts[ee]};
                     if (params.enable_refractory_period) {
-                        if (ts - sae.at<float>(ii, jj) >
+                        if (ts[ee] - sae.at<float>(ii, jj) >
                             params.refractory_period) {
                             td.push_back(e);
                             evtCount++;
-                            sae.at<float>(ii, jj) = ts;
+                            sae.at<float>(ii, jj) = ts[ee];
                         }
                     } else {
                         td.push_back(e);
@@ -268,14 +280,20 @@ void processFrames(Parameter params, VideoCapture camera) {
                 }
             }
         }
-    }
-    cout << evtCount << " events generated" << endl;
-    if (params.frame_show) {
-        for (Mat frame : curFrames) {
-            imshow("Webcam", frame);  // show the image on the window
-            // wait (25ms) for a key to be pressed
-            if (waitKey(25) >= 0) break;
-        }   
+
+        // tic = clock() - tic;
+        // cout << evtCount << " events generated" << endl;
+        // cout << (float)tic / CLOCKS_PER_SEC << " seconds took with event
+        // generation" << endl;
+        if (params.frame_show) {
+            imshow("Webcam", curFrames[fr]);
+            // for (Mat frame : curFrames) {
+            //     imshow("Webcam", frame);  // show the image on the window
+            //     // wait (25ms) for a key to be pressed
+            //     if (waitKey(25) >= 0) break;
+            // }
+        }
+        if (waitKey(25) >= 0) break;
     }
     return;
 }
@@ -284,6 +302,7 @@ int main(int, char **) {
     // open the first webcam plugged in the computer
 
     Parameter params;
+
     processFrames(params);
     destroyAllWindows();
 
