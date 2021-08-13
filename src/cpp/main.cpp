@@ -35,7 +35,7 @@ struct Parameter {
     double refractory_period = 1.0 / frames_per_second;
 
     int inject_spike_jitter = 1;
-    double threshold = 20.0;
+    double threshold = 40.0;
     Mat on_threshold, off_threshold;
 };
 
@@ -142,6 +142,7 @@ void processFrames(Parameter params) {
     if (!camera.open(0)) return;
     vector<Mat> frames;
     vector<Mat> curFrames;
+    vector<Mat> eventFrames;
     double threshold_variance =
         params.percent_threshold_variance / 100 * params.threshold;
     params.on_threshold = Mat(rows, cols, CV_32F, params.threshold);
@@ -169,7 +170,7 @@ void processFrames(Parameter params) {
     // cout << "-----Read " << numFrames << " frames-----" << endl;
     // if (numFrames == 0) return;
     // clock_t tic = clock();
-    for (int fr = 0; ; fr++) {
+    for (int fr = 0;; fr++) {
         Mat frame;
         camera >> frame;  // capture the next frames[k] from the webcam
         cvtColor(frame, frame, COLOR_BGR2GRAY);
@@ -177,10 +178,11 @@ void processFrames(Parameter params) {
         frames.push_back(frame);
         if (fr == 0) {
             curFrames.push_back(frames[0]);
+            eventFrames.push_back(frames[0]);
             continue;
         }
-        namedWindow("Webcam", WINDOW_AUTOSIZE);  // create a window to display
-                                                 // the images from the webcam
+        namedWindow("contrastFrame", WINDOW_AUTOSIZE);  // create a window to display
+        namedWindow("eventFrame", WINDOW_AUTOSIZE);                                  
         frames[fr].convertTo(curFrame, CV_32F);
         minMaxLoc(curFrame, &min, &max);
 
@@ -210,7 +212,7 @@ void processFrames(Parameter params) {
         }
         curFrame.convertTo(frame, CV_8U);
         curFrames.push_back(frame);
-        
+
         I_mem_p = I_mem.clone();
 
         if (params.enable_leak_ba) {
@@ -231,8 +233,8 @@ void processFrames(Parameter params) {
         // bipolar cells
         Mat dI = curFrame - pastFrame;
         I_mem += dI;
-
         T += tframe;
+        Mat eventFrame(rows, cols, CV_8UC3, Scalar(0, 0, 0));
         // ganglion cells
         for (int ii = 0; ii < rows; ii++) {
             for (int jj = 0; jj < cols; jj++) {
@@ -278,15 +280,20 @@ void processFrames(Parameter params) {
                         evtCount++;
                     }
                 }
+                if (p == 1)
+                    eventFrame.at<Vec3b>(ii, jj)[0] -= nevents;
+                else
+                    eventFrame.at<Vec3b>(ii, jj)[1] -= nevents;
             }
         }
-
+        eventFrames.push_back(eventFrame);
         // tic = clock() - tic;
         // cout << evtCount << " events generated" << endl;
         // cout << (float)tic / CLOCKS_PER_SEC << " seconds took with event
         // generation" << endl;
         if (params.frame_show) {
-            imshow("Webcam", curFrames[fr]);
+            imshow("contrastFrame", curFrames[fr]);
+            imshow("eventFrame", eventFrames[fr]);
             // for (Mat frame : curFrames) {
             //     imshow("Webcam", frame);  // show the image on the window
             //     // wait (25ms) for a key to be pressed
