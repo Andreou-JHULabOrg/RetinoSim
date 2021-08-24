@@ -9,7 +9,14 @@ addpath(genpath('../modeling'));
 addpath(genpath('../aux'));
 addpath(genpath('../io'));
 
-videoFile = '/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/gait/dm_1_Jump_Fwd_Then_Bwd_NW_SE.avi';
+
+%For AGA Lab - NAS1 usage
+
+filenamePrefix = 'dm_1_Jump_Fwd_Then_Bwd_NW_SE';
+videoFile = ['/DatasetsStaging/ONR-MURI-2009/JHUMMA-Shriver_Aug2014/make_rgb_videos/videos/' filenamePrefix '.avi'];
+
+%For Galatea-Dropbox usage
+% videoFile = '/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/gait/dm_1_Jump_Fwd_Then_Bwd_NW_SE.avi';
 
 nrows = 512;
 ncols = 512;
@@ -24,12 +31,12 @@ numframes = 400;
 %numframes = 60;
 
 brightness_ratio = 1;
-inVid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes );
+inVid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes, 1 );
 
 %%
 
 params.frames_per_second            = 30;
-params.frame_show                   = 1;
+params.frame_show                   = 0;
 
 
 params.resample_threshold           = 0;
@@ -60,6 +67,8 @@ params.enable_pixel_variance        = 1;
 params.enable_diffusive_net         = 1;
 params.enable_temporal_low_pass     = 1;
 
+params.isGPU                        = 0;
+
 params.enable_leak_ba           = 1;
 
 params.leak_ba_rate             = 40;
@@ -89,9 +98,14 @@ outframes = videoBlend(inVid, eventFrames, 0, 1, 'test.avi');
 
 run = '_run_04';
 
-save(['../../../data/gait/mats/dm_1_Jump_Fwd_Then_Bwd_NW_SE_params_' run '.mat'],'params')
-save(['../../../data/gait/mats/dm_1_Jump_Fwd_Then_Bwd_NW_SE_events_' run '.mat'],'TD')
-v = VideoWriter(['../../../data/gait/vids/dm_1_Jump_Fwd_Then_Bwd_NW_SE_event_frames' run '.avi']);
+% For Galatea usage
+% outputDirectory = '../../../data/gait';
+% For AGA Lab - NAS usage
+outputDirectory = '/home/jonahs/projects/ReImagine/AER_Data/model_output/gait';
+
+save([outputDirectory '/mats/' filenamePrefix '_params_' run '.mat'],'params')
+save([outputDirectory '/mats/' filenamePrefix '_events_' run '.mat'],'TD')
+v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_event_frames' run '.avi']);
 open(v);
 
 for k = 1:size(eventFrames,4)
@@ -103,7 +117,7 @@ end
  
 close(v);
 
-v = VideoWriter(['../../../data/gait/vids/dm_1_Jump_Fwd_Then_Bwd_NW_SE_gray_frames' run '.avi']);
+v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_gray_frames' run '.avi']);
 open(v);
 
 for k = 1:size(inVid,3)
@@ -115,7 +129,7 @@ end
  
 close(v);
 
-v = VideoWriter(['../../../data/gait/vids/dm_1_Jump_Fwd_Then_Bwd_NW_SE_blended_frames' run '.avi']);
+v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_blended_frames' run '.avi']);
 open(v);
 
 for k = 1:size(outframes,4)
