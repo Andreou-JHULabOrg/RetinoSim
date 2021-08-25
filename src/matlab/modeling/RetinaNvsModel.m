@@ -104,6 +104,14 @@ I_mem = 128*ones(size(grayFrames(:,:,1)));
 % leak_rate = normrnd(params.leak_ba_rate, sqrt(params.leak_ba_rate/2), size(logFrames(:,:,1)));
 leak_rate = params.leak_ba_rate;
 
+if params.enable_threshold_variance
+	theta_on_array =  on_threshold;
+	theta_off_array = off_threshold;
+else
+	theta_on_array =  params.on_threshold;
+	theta_off_array = params.off_threshold;
+end
+
 
 tic;
 
@@ -128,10 +136,17 @@ for f = 2:nFrames
     % ---------------------------------------------------- horizontal cells 
     % ------------------ Diffusive net implements a spatial low pass filter 
     if params.enable_diffusive_net
-%         pastFrame = imgaussfilt(pastFrame, sqrt(exp(1)));
-%         cur.Frame = imgaussfilt(cur.Frame, sqrt(exp(1)));
-          cur.Frame = NormalizeContrast(cur.Frame);
-          pastFrame = NormalizeContrast(pastFrame);
+
+		if params.isGPU
+			GPU_curframe = gpuArray(cur.Frame);
+			GPU_pastframe = gpuArray(pastFrame);
+			cur.Frame = gather(NormalizeContrast(GPU_curframe));
+			pastFrame = gather(NormalizeContrast(GPU_pastframe));
+		else
+			cur.Frame = NormalizeContrast(cur.Frame);
+			pastFrame = NormalizeContrast(pastFrame);
+		end
+	
           
 
     end
@@ -179,17 +194,21 @@ for f = 2:nFrames
     end
     
     % ----------------------------------- UPDATE Events with ganglion model
-    
+
+	
+	
+	
     for ii = 1:size(cur.Frame,1)
         for jj = 1:size(cur.Frame,2)  
-            
-            if params.enable_threshold_variance
-                theta_on =  on_threshold(ii,jj);
-                theta_off = off_threshold(ii,jj);
-            else
-                theta_on =  params.on_threshold(ii,jj);
-                theta_off = params.off_threshold(ii,jj);
-            end
+			theta_on = theta_on_array(ii,jj);
+			theta_off = theta_off_array(ii,jj);
+%             if params.enable_threshold_variance
+%                 theta_on =  on_threshold(ii,jj);
+%                 theta_off = off_threshold(ii,jj);
+%             else
+%                 theta_on =  params.on_threshold(ii,jj);
+%                 theta_off = params.off_threshold(ii,jj);
+%             end
                      
             % ganglion cells 
             if I_mem(ii,jj) > I_mem_p(ii,jj)
