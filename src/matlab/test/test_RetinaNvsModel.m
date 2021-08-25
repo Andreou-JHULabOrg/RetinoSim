@@ -9,7 +9,17 @@ addpath(genpath('../modeling'));
 addpath(genpath('../aux'));
 addpath(genpath('../io'));
 
-videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/livingroom_walk.mp4';
+
+%For AGA Lab - NAS1 usage
+
+filenamePrefix = 'dm_1_Jump_Fwd_Then_Bwd_NW_SE';
+videoFile = ['/DatasetsStaging/ONR-MURI-2009/JHUMMA-Shriver_Aug2014/make_rgb_videos/videos/' filenamePrefix '.avi'];
+
+%For Galatea-Dropbox usage
+% videoFile = '/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/gait/dm_1_Jump_Fwd_Then_Bwd_NW_SE.avi';
+
+% videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/livingroom_walk.mp4';
+
 
 nrows = 512;
 ncols = 512;
@@ -60,6 +70,8 @@ params.enable_pixel_variance        = 0;
 params.enable_diffusive_net         = 1;
 params.enable_temporal_low_pass     = 1;
 
+params.isGPU                        = 0;
+
 params.enable_leak_ba           = 1;
 
 params.leak_ba_rate             = 40;
@@ -87,6 +99,57 @@ params.write_frame_tag = 'leakrate_5_diffnet_1';
 
 %% Write video
 
+<<<<<<< HEAD
+run = '_run_04';
+
+% For Galatea usage
+% outputDirectory = '../../../data/gait';
+% For AGA Lab - NAS usage
+outputDirectory = '/home/jonahs/projects/ReImagine/AER_Data/model_output/gait';
+
+save([outputDirectory '/mats/' filenamePrefix '_params_' run '.mat'],'params')
+save([outputDirectory '/mats/' filenamePrefix '_events_' run '.mat'],'TD')
+v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_event_frames' run '.avi']);
+open(v);
+
+for k = 1:size(eventFrames,4)
+   imagesc(eventFrames(:,:,:,k));
+   pause(1/10);
+   M = getframe(gcf);
+   writeVideo(v,M);
+end
+ 
+close(v);
+
+v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_gray_frames' run '.avi']);
+open(v);
+
+for k = 1:size(inVid,3)
+   imagesc(inVid(:,:,k));
+   pause(1/10);
+   M = getframe(gcf);
+   writeVideo(v,M);
+end
+ 
+close(v);
+
+v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_blended_frames' run '.avi']);
+open(v);
+
+for k = 1:size(outframes,4)
+   imagesc(outframes(:,:,:,k));
+   pause(1/10);
+   M = getframe(gcf);
+   writeVideo(v,M);
+end
+ 
+close(v);
+
+for f = 1:size(inVid,3)
+    image(outframes(:,:,:,f));
+    pause(1/10);
+end
+=======
 % run = '_run_04';
 % 
 % save(['../../../data/gait/mats/dm_1_Jump_Fwd_Then_Bwd_NW_SE_params_' run '.mat'],'params')
@@ -131,6 +194,7 @@ params.write_frame_tag = 'leakrate_5_diffnet_1';
 %     image(outframes(:,:,:,f));
 %     pause(1/10);
 % end
+>>>>>>> acd6b15cd1613d9c1f0185516cbbec0db6b7992c
 
 %% figures
 if (params.frame_show == 1)
