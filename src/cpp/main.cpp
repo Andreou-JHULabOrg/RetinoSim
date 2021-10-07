@@ -1,3 +1,5 @@
+// #define PY_SSIZE_T_CLEAN
+// #include <Python.h>
 #include <stdio.h>
 
 #include <chrono>
@@ -21,7 +23,8 @@ int ksize = 15;
 int rows = 512;
 int cols = 512;
 int numFrames = 300;
-string videoPath = "/Users/susanliu/Documents/AndreouResearch/videos/";
+// string videoPath = "/Users/susanliu/Documents/AndreouResearch/videos/"; //for
+// input video
 
 struct Parameter {
     double percent_threshold_variance = 2.5;
@@ -129,7 +132,6 @@ void NormalizeContrast(Mat &frame) {
     img_c = img_c - min;  // bring to positive
     minMaxLoc(img_c, &min, &max);
     frame = img_c / max * 255;  // normalize and scale
-    // cout << frame;
 }
 
 void UniformInit(double *arr, double start, double spacing, int num) {
@@ -137,26 +139,53 @@ void UniformInit(double *arr, double start, double spacing, int num) {
     for (double k = start; idx < num; k += spacing, idx++) arr[idx] = k;
 }
 
-vector<Event> processFrames(Parameter params, char *inFile) {
-    int isLive = strcmp(inFile, "--live") == 0;
+int ReadLive(vector<Mat> &frames) {
+    VideoCapture camera;
+    if (!camera.open(0)) return 0;
+    double fps = 30.0;
+    Mat frame;
+    for (int k = 0; k <= numFrames; k++) {
+        camera >> frame;  // capture the next frame from the webcam
+        if (frame.empty()) cerr << "Empty frame read!" << endl;
+        Mat inFrame;
+        frame.convertTo(inFrame, CV_8U);
+        char buf[50];
+        sprintf(buf, "../images/live%03d.jpg", k);
+        string imgf(buf);
+        imwrite(imgf, frame);
+        cvtColor(frame, frame, COLOR_BGR2GRAY);
+        resize(frame, frame, Size(cols, rows), 0, 0, INTER_CUBIC);
+        frames.push_back(frame);
+    }
+    system(
+        "ffmpeg -y -r 30 -f image2 -s 1280x720 -i ../images/live%03d.jpg "
+        "-vcodec libx264 -crf 25  -pix_fmt yuv420p ../live.mp4");
+    system("rm ../images/*");
+    cout << "-----Read " << numFrames << " frames from live camera-----"
+         << endl;
+    camera.release();
+    return numFrames;
+}
+
+vector<Event> processFrames(Parameter params, char *videoFile, int isLive) {
     double tframe = (double)1 / params.frames_per_second;
     vector<Event> td;
     vector<Mat> frames;
     vector<Mat> curFrames;
     vector<Mat> eventFrames;
-    VideoCapture camera;
-    if (!camera.open(0)) return td;
     if (!isLive) {  // read from a video file
-        camera.release();
-        string infile(inFile);
-        infile = videoPath + infile;
-        strcpy(inFile, infile.c_str());
+        // string infile(videoFile);
+        // infile = videoPath + infile;
+        // strcpy(videoFile, infile.c_str());
         cout << "Now reading video" << endl;
-        int numFrames = ReadVideo(frames, inFile);
+        int numFrames = ReadVideo(frames, videoFile);
         cout << "-----Read " << numFrames << " frames from files-----" << endl;
         if (numFrames == 0) return td;
-    } 
-        
+    } else {  // read from webcam and save in video file
+        int numFrames = ReadLive(frames);
+        if (numFrames == 0) return td;
+    }
+
     double threshold_variance =
         params.percent_threshold_variance / 100 * params.threshold;
     params.on_threshold = Mat(rows, cols, CV_32F, params.threshold);
@@ -182,12 +211,6 @@ vector<Event> processFrames(Parameter params, char *inFile) {
 
     for (int fr = 0;; fr++) {
         Mat frame;
-        if (isLive) {
-            camera >> frame;  // capture the next frames[k] from the webcam
-            cvtColor(frame, frame, COLOR_BGR2GRAY);
-            resize(frame, frame, Size(cols, rows), 0, 0, INTER_CUBIC);
-            frames.push_back(frame);
-        }
         if (fr == 0) {
             curFrames.push_back(frames[0]);
             eventFrames.push_back(frames[0]);
@@ -222,6 +245,7 @@ vector<Event> processFrames(Parameter params, char *inFile) {
         }
         // horizontal cells
         if (params.enable_diffusive_net) {
+            if (curFrame.empty() || pastFrame.empty()) cerr << "empty frame";
             NormalizeContrast(curFrame);
             NormalizeContrast(pastFrame);
         }
@@ -322,7 +346,7 @@ int main(int argc, char **argv) {
         cerr << "ERROR: invalid arguments!" << endl;
         return 1;
     }
-
+    int isLive = strcmp(argv[1], "--live") == 0;
     string outfile(argv[2]);
     ofstream output(outfile, ios_base::out | ios::binary);
     if (!output.is_open()) {
@@ -330,7 +354,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     Parameter params;
-    vector<Event> td = processFrames(params, argv[1]);
+    vector<Event> td = processFrames(params, argv[1], isLive);
     for (Event e : td) {
         uint32_t ts = e.ts * 1e6;
         output.write(reinterpret_cast<const char *>(&(e.x)), sizeof(e.x));
