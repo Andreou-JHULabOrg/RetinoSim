@@ -112,7 +112,7 @@ else
 	theta_off_array = params.off_threshold;
 end
 
-
+outputdir = '../../../../spike_proc/data/output/spike_model/';
 tic;
 
 
@@ -174,7 +174,6 @@ for f = 2:nFrames
     % ---------------------------------------- optional plotting and output
     if params.write_frame
         if f == params.write_frame
-            outputdir = '../../../../data/output/spike_model/';
             fprintf("Wrote images to input, pr, and bp images.\n");
             imwrite(grayFrames(:,:,f)/max(max(grayFrames(:,:,f))),[outputdir 'in_' params.write_frame_tag '_.jpg'], 'JPEG');
             imwrite(cur.Frame/max(max(cur.Frame)),[outputdir 'pr_' params.write_frame_tag '_.jpg'], 'JPEG');
@@ -266,7 +265,6 @@ for f = 2:nFrames
     if params.write_frame
         if f == params.write_frame
             fprintf("Wrote gc image to file.\n");
-            outputdir = '../../../../data/output/spike_model/';
             imwrite(eventFrames(:,:,:,f),[outputdir 'gc_' params.write_frame_tag '_.jpg'],'JPEG');
         end
     end
