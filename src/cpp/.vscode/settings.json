@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "random": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "ios": "cpp",
+        "string": "cpp",
+        "iosfwd": "cpp",
+        "__mutex_base": "cpp",
+        "memory": "cpp"
     }
 }
