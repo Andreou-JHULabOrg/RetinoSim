@@ -123,16 +123,22 @@ for fidx = 2:size(grayFrames,3)
     maxIph = max(grayFrames, [], 'all');
     
     %%% ----------------------------------------------- Additive shot noise to photocurrent
-    pix_shot_rate       = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxIph-grayFrames(:,:,fidx));
-    pixel_fe_noise      = normrnd(0,double(pix_shot_rate),size(grayFrames(:,:,1)));
     
-    frame.cur   = grayFrames(:,:,fidx) + pixel_fe_noise;
+    if params.enable_shot_noise
+        pix_shot_rate       = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxIph-grayFrames(:,:,fidx));
+        pixel_fe_noise      = normrnd(0,double(pix_shot_rate),size(grayFrames(:,:,1)));
+        
+        frame.cur   = grayFrames(:,:,fidx) + pixel_fe_noise;
+        frame.past  = grayFrames(:,:,fidx-1) +  pixel_fe_noise_past;
+    else
+        frame.cur   = grayFrames(:,:,fidx);
+        frame.past  = grayFrames(:,:,fidx-1);
+    end
+    
     frame.photo = frame.cur;
-    frame.past  = grayFrames(:,:,fidx-1) +  pixel_fe_noise_past;
     frame.idx   = fidx;
-    
-   
-       
+
+
     %%% ----------------------------------------------- OPL: Spatial bandpass
 
     frame.opl_sr = NormalizeContrast(frame.cur);
@@ -148,12 +154,6 @@ for fidx = 2:size(grayFrames,3)
     
     frame.opl_str = (params.opl_time_constant)*frame.opl_str_ + (1-params.opl_time_constant)*frame.opl_sr;
      
-    
-    
-    
-    
-    
-    
     %%% ----------------------------------------------- Channel rectification
     %%% ----------------------------------------------- 1st order High pass
     %%% temporal filtering and integration

@@ -20,6 +20,8 @@ input_vid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes,
 
 params.frame_show                       = 1;
 
+params.enable_shot_noise                = 0;
+
 params.time_step                        = 10;
 
 params.leak_ba_rate                     = 0.5;
@@ -36,7 +38,7 @@ params.gc_reset_value                   = 0;
 params.gc_refractory_period             = 0;
 params.oms_reset_value                  = 3;
 params.oms_refractory_period            = 0;
-params.dbg_mode                         = 'on_neuron';
+params.dbg_mode                         = 'photo';
 params.opl_time_constant                = 0.3;
 params.hpf_gc_tc                        = 1.0;
 params.hpf_wac_tc                       = 0.4;
