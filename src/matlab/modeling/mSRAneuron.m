@@ -1,7 +1,7 @@
-%% Script to resolve behavior of SRA neuron
+%% Script to resolve behavior of SRA neuron with HPF current input
+
 
 %% Script parameters
-
 clear;clc;
 
 vmem    = 10;
@@ -12,7 +12,7 @@ imem    = [10*ones(1,100) 0*ones(1,200) 7*ones(1,300) 6*ones(1,200) 0*ones(1,200
 % reset membrane voltage upon spike
 vrst    = -70;
 % threshold membrane voltage that generates spikes
-vth     = 15;
+vth     = 10;
 
 % membrane (leakage) time constant
 tleak = 8;
@@ -38,12 +38,24 @@ tend = 1000;
 
 t0 = 1;
 
+% HPF params
+iresp = 0;
+% HPF time constant
+thpf = 100;
+
 
 %% ODE Numerical Solutions
 
-
 for t=2:tend
-    imem_cur = imem(t);
+    
+    diresp = (imem(t)-imem(t-1)) - iresp/thpf;
+    
+    % Uncomment to use injection current as input
+%     imem_cur = abs(imem(t));
+
+    % Uncomment to use HPF response as input
+    
+    imem_cur = abs(iresp); % fullwave rectification of HPF response
     
     dgsra = -gsra/tsra;
     
@@ -56,10 +68,14 @@ for t=2:tend
     % Euler method DE update
     vmem = vmem + dvmem;
     gsra = gsra + dgsra;
+    iresp = iresp + diresp;
+
     
     % Store system states
     gsra_states(t) = gsra;
     vmem_states(t) = vmem;
+    iresp_states(t) = iresp;
+
     
     % Non-linear reset update
     if vmem>vth
@@ -71,16 +87,19 @@ for t=2:tend
 
 end
 
+
 %% Plotting 
 
-
 figure();
-subplot(3,1,1)
+subplot(4,1,1)
 plot(1:tend, vmem_states);
 title('Vmem');
-subplot(3,1,2)
+subplot(4,1,2)
 plot(1:tend, gsra_states);
 title('Gsra');
-subplot(3,1,3)
+subplot(4,1,3)
+plot(1:tend, abs(iresp_states));
+title('Iresp');
+subplot(4,1,4)
 plot(1:tend, imem);
 title('Imem');
