@@ -1,4 +1,4 @@
-function [] = CreateStimulus(hsf, vsf, htf, vtf, hamp, vamp, write, videoPath)
+function [] = CreateStimulus(hsf, vsf, htf, vtf, hamp, vamp, write, videoPath, num_frames)
 %%% This is a function that creates 2D-grid stimulus for testing purposes
 %%% Author: Susan Liu
 % hsf: horizontal spatial frequency, range [2, 5]
@@ -14,7 +14,7 @@ hsf = hsf * 0.1;
 vsf = vsf * 0.1;
 width = 400;
 height = 400;
-num_frame = 300;
+num_frame = num_frames;
 hamp = hamp * 0.25;
 vamp = vamp * 0.25;
 
@@ -37,8 +37,6 @@ for k = 0:num_frame
     cha = repmat(vx, [width, 1]);
     vstr = cat(3, cha, cha, cha);
     im = hstr + vstr;
-%     figure
-%     image(im)
     if write
         writeVideo(v, im);
     else
