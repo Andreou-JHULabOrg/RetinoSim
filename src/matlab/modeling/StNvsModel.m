@@ -171,6 +171,9 @@ for fidx = 2:size(grayFrames,3)
     %Difference in OPL
     diffOPL = frame.opl_str-frame.opl_str_;
     
+    diffOPL = abs(frame.opl_str-threshold_array.bc);
+
+    
     %Create high pass response
     
     onNeuron.state_   = onNeuron.state;
@@ -178,11 +181,16 @@ for fidx = 2:size(grayFrames,3)
     
 %     high_pass_response.on = ((params.hpf_gc_tc)*onNeuron.state_(onIdx) + (params.hpf_gc_tc)*(diffOPL(onIdx)));
 %     high_pass_response.off = ((params.hpf_gc_tc)*offNeuron.state_(offIdx) + (params.hpf_gc_tc)*(diffOPL(offIdx)));
+    % JS - remove 
     
     high_pass_response.on = (params.hpf_gc_tc)*(diffOPL(onIdx));
     high_pass_response.off = (params.hpf_gc_tc)*(diffOPL(offIdx));
 
     %Integrate on Neurons
+    
+    onNeuron.state(onIdx) = onNeuron.state(onIdx) + diffOPL(onIdx);
+    offNeuron.state(offIdx) = offNeuron.state(offIdx) + diffOPL(offIdx);
+    
     onNeuron.state(onIdx) = onNeuron.state(onIdx) + abs(high_pass_response.on);
     offNeuron.state(offIdx) = offNeuron.state(offIdx) + abs(high_pass_response.off);
 

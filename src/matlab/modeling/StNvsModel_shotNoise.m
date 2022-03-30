@@ -40,7 +40,7 @@ eventFrames = zeros(size(grayFrames,1), size(grayFrames,2), 3, nFrames);
 
 
 %%% -------------------------------------------- Calculate Shot Noise RMS 
-maxLog = max(max(grayFrames(:,:,1)));
+maxIph = max(grayFrames, [], 'all');
 
 timescale           = 10e-6; % S
 q                   = 1.62e-19; % C
@@ -50,8 +50,8 @@ tr_noise            = sqrt(2 * q * average_current * (1/timescale)) / average_cu
 h                   = params.h;
 D1                  = 2;
 D2                  = 3;
-%pix_shot_rate       = tr_noise * (D1 + D2 * h);
-% pixel_fe_noise_past = normrnd(0,double(pix_shot_rate),size(grayFrames(:,:,1)));
+pix_shot_rate       = tr_noise * (D1 + D2 * h) .* (maxIph-grayFrames(:,:,1));
+pixel_fe_noise_past = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
 
 
 %%% ----------------------------------------------- Set leakage currents
@@ -129,29 +129,14 @@ for fidx = 2:size(grayFrames,3)
     
     frames.current_time = frames.current_time + params.time_step;
     
-    maxIph = max(grayFrames, [], 'all');
-    
     %%% ----------------------------------------------- Additive shot noise to photocurrent
     
     if params.enable_shot_noise
-          pix_shot_rate       = tr_noise * (D1 + D2 * h) .* (maxIph-grayFrames(:,:,fidx));
+          pix_shot_rate = tr_noise * (D1 + D2 * h) .* (maxIph-grayFrames(:,:,fidx));
           pixel_fe_noise = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));  
           frame.cur   = grayFrames(:,:,fidx) + pixel_fe_noise;
-          frame.past  = grayFrames(:,:,fidx-1) +  pixel_fe_noise;
-%           if (fidx == 44)
-%               figure();
-%               subplot(2, 2, 1);
-%               histogram(grayFrames(:,:,fidx,:)); 
-%               hold on;
-%               subplot(2, 2, 2);
-%               image(grayFrames(:,:,fidx));
-%               colorbar
-%               subplot(2, 2, 3);
-%               histogram(frame.cur(:));
-%               subplot(2, 2, 4);
-%               image(frame.cur);
-%               colorbar
-%           end
+          frame.past  = grayFrames(:,:,fidx-1) +  pixel_fe_noise_past;
+          pixel_fe_noise_past = pixel_fe_noise;
           figure();
           subplot(2, 5, 1);
           histogram(grayFrames(:,:,fidx,:));

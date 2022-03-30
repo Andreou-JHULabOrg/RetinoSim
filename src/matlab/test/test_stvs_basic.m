@@ -10,17 +10,17 @@ addpath(genpath('../io'));
 
 nrows = 512;
 ncols = 512;
-videoFile = '../../../../spike_proc/data/video/simp_ball/simp_ball_4.mp4';
+videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/cat_jump.mp4';
 
 brightness_ratio = 1;
-numframes = 45;
+numframes = 20;
 input_vid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes, 1 );
 
 %% Parameterize model 
 
 params.frame_show                       = 1;
 
-params.enable_shot_noise                = 0;
+params.enable_shot_noise                = 1;
 
 params.time_step                        = 10;
 
@@ -42,14 +42,25 @@ params.dbg_mode                         = 'photo';
 params.opl_time_constant                = 0.3;
 params.hpf_gc_tc                        = 1.0;
 params.hpf_wac_tc                       = 0.4;
-
+params.resample_threshold               = 0;
+params.rng_settings                     = 0;
 params.enable_sequentialOMS             = 0;
-
+params.h                                = 0;
 
 %% Run Model 
 clc;
-
-[TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(input_vid, params);
+params.enable_shot_noise                = 0;
+[TD, eventFrames, rng_settings, dbgFrames, OMSNeuron, eventCount] = StNvsModel_shotNoise(input_vid, params);
+counts = [eventCount];
+params.enable_shot_noise                = 1;
+for h = 1:10
+    params.h = h;
+    [TD, eventFrames, rng_settings, dbgFrames, OMSNeuron, eventCount] = StNvsModel_shotNoise(input_vid, params);
+    counts = [counts, eventCount];
+end
+x = 0:10
+figure()
+plot(x, counts);
 
 %% figures
 if (params.frame_show == 1)
@@ -92,5 +103,5 @@ if (params.frame_show == 1)
 
         pause(1/60);
     end
-    close(v);
+%     close(v);
 end

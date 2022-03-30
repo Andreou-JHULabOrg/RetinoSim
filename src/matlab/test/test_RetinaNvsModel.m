@@ -23,12 +23,12 @@ addpath(genpath('../io'));
 
 nrows = 512;
 ncols = 512;
-numframes = 300;
+numframes = 20;
 
-videoFile = '../../../../spike_proc/data/video/cat_jump.mp4';
-%videoFile = '../../../../spike_proc/data/video/OCD1_029_statinary_800mm_1mile_frames.mp4';
+% videoFile = '../../../../spike_proc/data/video/cat_jump.mp4';
+% videoFile = '../../../../spike_proc/data/video/OCD1_029_statinary_800mm_1mile_frames.mp4';
 % videoFile = '../../../../spike_proc/data/video/stationary_1mile_800mm.mp4';
-% videoFile = '../../../../spike_proc/data/video/simp_ball/simp_ball_3.mp4';
+videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/cat_jump.mp4';
 %nrows = 260;
 %ncols = 346;
 %numframes = 60;
@@ -66,7 +66,7 @@ end
 params.percent_threshold_variance   = 2.5; % 2.5% variance in threshold - from DVS paper
 
 params.enable_threshold_variance    = 1;
-params.enable_pixel_variance        = 0;
+params.enable_pixel_variance        = 1;
 params.enable_diffusive_net         = 1;
 params.enable_temporal_low_pass     = 1;
 
@@ -89,8 +89,20 @@ params.inject_poiss_noise       = 0;
 
 params.write_frame = 170;
 params.write_frame_tag = 'proposal_figure_w_diff';
+params.h = 0;
 
-[TD, eventFrames, ~, grayFrames, curFrames] = RetinaNvsModel(double(inVid), params);
+params.enable_pixel_variance        = 0;
+[TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(double(inVid), params);
+counts = [eventCount];
+params.enable_pixel_variance        = 1;
+for h = 1:10
+    params.h = h;
+    [TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(double(inVid), params);
+    counts = [counts, eventCount];
+end
+x = 0:10
+figure()
+plot(x, counts);
 
 
 %%
