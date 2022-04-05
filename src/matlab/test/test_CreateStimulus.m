@@ -17,7 +17,7 @@ htf = 5;
 vtf = 5;
 hamp = 1;
 vamp = 1;
-write = true;
+write = false;
 vPath = '/Users/susanliu/Documents/AndreouResearch/videos/h451v451.mp4';
 
 CreateStimulus(hsf, vsf, htf, vtf, hamp, vamp, write, vPath);

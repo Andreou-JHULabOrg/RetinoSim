@@ -10,7 +10,7 @@ function [TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(input_video, param
 
 
 fprintf("\n---------------------------------------------------------------\n\n");
-fprintf("[SpatioTemporalVS-INFO] Generating spikes from RetinaNvs model...\n");
+fprintf("[SpatioTemporalVS-INFO] Generating spikes from StNvs model...\n");
 fprintf("\n---------------------------------------------------------------\n");
 
 tic;

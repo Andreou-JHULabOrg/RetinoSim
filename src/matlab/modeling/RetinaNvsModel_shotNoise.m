@@ -119,8 +119,6 @@ end
 outputdir = '../../../../spike_proc/data/output/spike_model/';
 tic;
 
-
-
 for f = 2:nFrames
 %     fprintf("Processing Frame : %d \n", f);
     maxLog = max(max(grayFrames(:,:,f)));
