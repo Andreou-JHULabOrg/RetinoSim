@@ -147,10 +147,10 @@ for f = 1:nFrames
     end
     
     for iT = ixStart:ixEnd
-        if TD_new.p(iT) == 1
+        if (TD_new.p(iT) == 1)
             out(TD_new.y(iT), TD_new.x(iT), 3, f) = out(TD_new.y(iT), TD_new.x(iT), 3, f) + TD_new.p(iT);
         else
-            out(TD_new.y(iT), TD_new.x(iT), 2, f) = out(TD_new.y(iT), TD_new.x(iT), 2, f) + TD_new.p(iT);
+            out(TD_new.y(iT), TD_new.x(iT), 2, f) = out(TD_new.y(iT), TD_new.x(iT), 2, f) + abs(TD_new.p(iT));
         end
     end    
 end
@@ -169,13 +169,8 @@ if showFrame == 1
 		open(v);
 	end
     for ii = 1:FrameCt
-        curFrame = out(:,:,ii);
-        ONevent = curFrame > 0;
-        OFFevent = curFrame < 0;
-        tmp = zeros(size(curFrame));
-        tmp(ONevent) = curFrame(ONevent) + 200;
-        tmp(OFFevent) = abs(curFrame(OFFevent))+100;
-        imagesc((tmp));
+        curFrame = out(:,:,:,ii);
+        imshow(curFrame);
         title(['Frame: ' num2str(ii) ', Time: ' num2str(ii*bin_param + TD.ts(1))]);
         colormap(gray);
         pause(1/fps);

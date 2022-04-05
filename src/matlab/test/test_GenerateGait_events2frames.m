@@ -6,7 +6,8 @@ addpath(genpath('../io'));
 
 
 %%
-videoFileRoot = '/Users/jonahs/Documents/research/projects/RetinaNVSmodel/data/mat/gait/082521/';
+videoFileRoot = '/home/jonahs/projects/ReImagine/AER_Data/gait/082521/';
+outputDirectory =[videoFileRoot 'out/'];
 
 trials = {
     'ss_1', ...
@@ -22,12 +23,15 @@ mvmts = {
     '_walk_NW_SE'
 };
 
-nrows = 512;
-ncols = 512;
-numframes = 400;
+params.nrows = 512;
+params.ncols = 512;
+params.numframes = 400;
 
-bin_params.method = 'time';
-bin_params.bin_length = 33e3;
+params.method = 'time';
+params.bin_length = 33e3;
+run = 'run_00';
+
+save([outputDirectory 'genframes_' run '_params.mat'],'params');
 
 
 %%
@@ -37,15 +41,18 @@ for curTidx = 1:length(trials)
         clear TD
         
         filenamePrefix = [trials{curTidx} mvmts{curMidx}];
-        filePath = [videoFileRoot filenamePrefix '_sensor0.mat'];
+        filePath = [videoFileRoot filenamePrefix '_sensor_0.mat'];
+		outputFilePath = [outputDirectory 'vids/' filenamePrefix '_event_frames_' run '.avi'];
+		
+		fprintf("Reading from %s and outputting to %s\n", filePath, outputFilePath);
         [TD] = loadAEFile(filePath);
         
-        [eventFrames] = makeFrames(TD, bin_params.method, bin_params.bin_length);
+        [eventFrames] = makeFrames(TD, params.method, params.bin_length);
         			
-        v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_event_frames_' run '.avi']);
+        v = VideoWriter(outputFilePath);
         open(v);
-        for k = 1:size(eventFrames,4)
-            currentRGBFrame = (eventFrames(:,:,:,k));
+        for k = 1:params.numframes
+            currentRGBFrame = imresize(eventFrames(:,:,:,k), [params.nrows params.ncols]);
             scaledFrame = uint8(rescale(currentRGBFrame,0,255));
             writeVideo(v,scaledFrame);
         end

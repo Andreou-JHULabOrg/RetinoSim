@@ -9,45 +9,25 @@ addpath(genpath('../io'));
 
 %%
 
+
 trials = {
-    'bb_1', ...
-    'dm_1', ...
-    'dm_2', ...
-    'gg_1', ...
-    'gg_2', ...
-    'gt_1', ...
-    'jm_1', ...
-    'jz_1', ...
-    'ks_1', ...
-    'ks_2', ...
-    'mc_1', ...
-    'tf_1', ...
-    'tm_1', ...
-    'tm_2'
+    'ss_1', ...
+    'js_1', ...
+    'mt_1'
     };
 
-
-% trials = {
-%     'bb_1', ...
-%     'dm_1', ...
-%     'gg_1', ...
-%     'gt_1', ...
-%     'jm_1', ...
-%     'jz_1', ...
-%     'ks_1', ...
-%     'ks_2', ...
-%     'mc_1', ...
-%     'tm_1', ...
-%     'tm_2'
-%     };
+% mvmts = {
+%     '_walk_N_S', ...
+%     '_walk_W_E', ...
+%     '_walk_in_place', ...
+%     '_walk_NE_SW', ...
+%     '_walk_NW_SE'
+% };
 
 mvmts = {
-'_walk_facing_forward_N_S', ...
-'_walk_facing_sideways_W_E', ...
-'_walk_in_place_N', ...
-'_walk_pivot_NE_SW', ...
-'_walk_pivot_NW_SE'
+    '_walk_in_place'
 };
+
 
 %%
 
@@ -62,8 +42,8 @@ params.resample_threshold           = 0;
 params.rng_settings                 = 1;
 
 
-params.on_threshold             = 20 *ones(params.nrows, params.ncols);
-params.off_threshold             =20 *ones(params.nrows, params.ncols);
+params.on_threshold             = 10 *ones(params.nrows, params.ncols);
+params.off_threshold             =10 *ones(params.nrows, params.ncols);
 
 
 params.percent_threshold_variance   = 2.5; % 2.5% variance in threshold - from DVS paper
@@ -91,14 +71,17 @@ params.inject_poiss_noise       = 0;
 params.write_frame = 0;
 params.write_frame_tag = 'leakrate_5_diffnet_1';
 
-run = 'run_03';
-outputDirectory = ['/home/jonahs/projects/ReImagine/AER_Data/model_output/gait/' run];
+videoFileRoot = '/home/jonahs/projects/ReImagine/AER_Data/gait/082521/avi/';
+run = 'run_05';
+outputDirectory =['/home/jonahs/projects/ReImagine/AER_Data/model_output/gait/' run];
 
-save([outputDirectory '/mats/genscript0_' run '_params.mat'],'params');
-
+save([outputDirectory '/mats/genscript1_' run '_params.mat'],'params');
 
 %%
 
+
+% HAD TO INSTALL GSTREAMER1.0 and ALL PLUGINS TO GET AVI and MP4 to work on
+% LINUX
 
 for curTidx = 1:length(trials)
 	for curMidx = 1:length(mvmts)
@@ -106,8 +89,12 @@ for curTidx = 1:length(trials)
 		% --------------------------------------------------- 1. LOAD VIDEO
 		
 		filenamePrefix = [trials{curTidx} mvmts{curMidx}];
-		videoFile = ['/DatasetsStaging/ONR-MURI-2009/JHUMMA-Shriver_Aug2014/make_rgb_videos/videos/' filenamePrefix '.avi'];
-		try
+		videoFile = [videoFileRoot filenamePrefix '.avi'];
+		outFilePath = [outputDirectory '/vids/' filenamePrefix '_event_frames_' run '.avi'];
+		
+		fprintf("[genscript-INFO] Reading from %s and outputting to %s\n", videoFile, outFilePath);
+		
+% 		try
 			inVid = readVideo_rs( videoFile, params.nrows, params.ncols, params.numFrames, 1 );
 			
 			fprintf('[genscript-INFO] Generating events from video file: %s.avi\n', filenamePrefix);
@@ -125,38 +112,14 @@ for curTidx = 1:length(trials)
 			v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_event_frames_' run '.avi']);
 			open(v);
 			for k = 1:size(eventFrames,4)
-				currentRGBFrame = eventFrames(:,:,:,k)
-				imshow(eventFrames(:,:,:,k));
-				% 			pause(1/10);
-				M = getframe(gcf);
-
-				writeVideo(v,M);
-% 				pause(1/10);
+				currentRGBFrame = (eventFrames(:,:,:,k));
+				scaledFrame = uint8(rescale(currentRGBFrame,0,255));
+				writeVideo(v,scaledFrame);
 			end
 			close(v);
-			
-			v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_gray_frames_' run '.avi']);
-			open(v);
-			for k = 1:size(inVid,3)
-				imagesc(inVid(:,:,k));
-				% 			pause(1/10);
-				M = getframe(gcf);
-				writeVideo(v,M);
-			end
-			close(v);
-			
-			v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_blended_frames_' run '.avi']);
-			open(v);
-			for k = 1:size(outframes,4)
-				imagesc(outframes(:,:,:,k));
-				% 			pause(1/10);
-				M = getframe(gcf);
-				writeVideo(v,M);
-			end
-			close(v);
-		catch ME
-			warning('Video file not found');
-		end
+% 		catch ME
+% 			warning('Video file not found');
+% 		end
 
 		
 	end
