@@ -1,4 +1,4 @@
-function [TD, eventFrames, rng_settings, grayFrames, curFrames] = RetinaNvsModel(inVid, params)
+function [TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(inVid, params)
 %RETINANVSMODEL Model that converts video into events using Retina-inspired NVS model 
 %AUTHOR : Jonah P. Sengupta
 %DATE : 8-19-20
@@ -83,13 +83,17 @@ else
 end
 
 %%%%% -------------------------------------------- Calculate Shot Noise RMS 
-maxLog = max(max(grayFrames(:,:,1)));
+maxIph = max(grayFrames, [], 'all');
 
 timescale           = 10e-6; % S
 q                   = 1.62e-19; % C
 average_current     = 1e-9; % A
 num_devices         = 10;
-pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-grayFrames(:,:,1));
+tr_noise            = sqrt(2 * q * average_current * (1/timescale)) / average_current;
+h                   = params.h;
+D1                  = 2;
+D2                  = 3;
+pix_shot_rate       = tr_noise * (D1 + D2 * h) .* (maxIph-grayFrames(:,:,1));
 pixel_fe_noise_past = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
 
 sae = zeros(size(grayFrames(:,:,1)));
@@ -122,11 +126,31 @@ for f = 2:nFrames
     maxLog = max(max(grayFrames(:,:,f)));
 
     if params.enable_pixel_variance
-        pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-grayFrames(:,:,f));
+        pix_shot_rate = tr_noise * (D1 + D2 * h) .* (maxIph-grayFrames(:,:,f));
         pixel_fe_noise = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
         pastFrame = grayFrames(:,:,f-1) + pixel_fe_noise_past;
         cur.Frame = grayFrames(:,:,f) + pixel_fe_noise;
         pixel_fe_noise_past = pixel_fe_noise;
+%         figure();
+%         subplot(2, 5, 1);
+%         image(grayFrames(:,:,f));
+%         colorbar
+% %         xlim([0, 250])
+% %         ylim([0, 10000])
+%         title('Original',  'Interpreter', 'latex');
+%         hold on;
+%         for h = 1:9
+%             pix_shot_rate = tr_noise * (D1 + D2 * h) .* (maxIph-grayFrames(:,:,f));
+%             pixel_fe_noise = normrnd(0,pix_shot_rate,size(grayFrames(:,:,1)));
+%             pastFrame = grayFrames(:,:,f-1) + pixel_fe_noise_past;
+%             cur.Frame = grayFrames(:,:,f) + pixel_fe_noise;
+%             subplot(2, 5, h+1);
+%             image(cur.Frame);
+%             colorbar
+% %             xlim([0, 250])
+% %             ylim([0, 10000])
+%             title('H: ', h, 'Interpreter', 'latex');
+%         end
     else 
         pastFrame = grayFrames(:,:,f-1);
         cur.Frame = grayFrames(:,:,f);
@@ -269,6 +293,7 @@ for f = 2:nFrames
         end
     end
 end
+eventCount = sum(eventFrames, 'all');
 
 if (params.frame_show == 1)
     fig = figure();

@@ -12,8 +12,8 @@ addpath(genpath('../io'));
 
 %For AGA Lab - NAS1 usage
 
-filenamePrefix = 'dm_1_Jump_Fwd_Then_Bwd_NW_SE';
-videoFile = ['/DatasetsStaging/ONR-MURI-2009/JHUMMA-Shriver_Aug2014/make_rgb_videos/videos/' filenamePrefix '.avi'];
+% filenamePrefix = 'dm_1_Jump_Fwd_Then_Bwd_NW_SE';
+% videoFile = ['/DatasetsStaging/ONR-MURI-2009/JHUMMA-Shriver_Aug2014/make_rgb_videos/videos/' filenamePrefix '.avi'];
 
 %For Galatea-Dropbox usage
 % videoFile = '/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/gait/dm_1_Jump_Fwd_Then_Bwd_NW_SE.avi';
@@ -23,12 +23,12 @@ videoFile = ['/DatasetsStaging/ONR-MURI-2009/JHUMMA-Shriver_Aug2014/make_rgb_vid
 
 nrows = 512;
 ncols = 512;
-numframes = 300;
+numframes = 20;
 
 % videoFile = '../../../../spike_proc/data/video/cat_jump.mp4';
-%videoFile = '../../../../spike_proc/data/video/OCD1_029_statinary_800mm_1mile_frames.mp4';
+% videoFile = '../../../../spike_proc/data/video/OCD1_029_statinary_800mm_1mile_frames.mp4';
 % videoFile = '../../../../spike_proc/data/video/stationary_1mile_800mm.mp4';
-% videoFile = '../../../../spike_proc/data/video/simp_ball/simp_ball_3.mp4';
+videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/cat_jump.mp4';
 %nrows = 260;
 %ncols = 346;
 %numframes = 60;
@@ -66,7 +66,7 @@ end
 params.percent_threshold_variance   = 2.5; % 2.5% variance in threshold - from DVS paper
 
 params.enable_threshold_variance    = 1;
-params.enable_pixel_variance        = 0;
+params.enable_pixel_variance        = 1;
 params.enable_diffusive_net         = 1;
 params.enable_temporal_low_pass     = 1;
 
@@ -87,10 +87,22 @@ params.inject_spike_jitter      = 1;
 
 params.inject_poiss_noise       = 0;
 
-params.write_frame = 0;
-params.write_frame_tag = 'leakrate_5_diffnet_1';
+params.write_frame = 170;
+params.write_frame_tag = 'proposal_figure_w_diff';
+params.h = 0;
 
-[TD, eventFrames, ~, grayFrames, curFrames] = RetinaNvsModel(double(inVid), params);
+params.enable_pixel_variance        = 0;
+[TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(double(inVid), params);
+counts = [eventCount];
+params.enable_pixel_variance        = 1;
+for h = 1:10
+    params.h = h;
+    [TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(double(inVid), params);
+    counts = [counts, eventCount];
+end
+x = 0:10
+figure()
+plot(x, counts);
 
 
 %%
@@ -99,57 +111,6 @@ params.write_frame_tag = 'leakrate_5_diffnet_1';
 
 %% Write video
 
-<<<<<<< HEAD
-run = '_run_04';
-
-% For Galatea usage
-% outputDirectory = '../../../data/gait';
-% For AGA Lab - NAS usage
-outputDirectory = '/home/jonahs/projects/ReImagine/AER_Data/model_output/gait';
-
-save([outputDirectory '/mats/' filenamePrefix '_params_' run '.mat'],'params')
-save([outputDirectory '/mats/' filenamePrefix '_events_' run '.mat'],'TD')
-v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_event_frames' run '.avi']);
-open(v);
-
-for k = 1:size(eventFrames,4)
-   imagesc(eventFrames(:,:,:,k));
-   pause(1/10);
-   M = getframe(gcf);
-   writeVideo(v,M);
-end
- 
-close(v);
-
-v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_gray_frames' run '.avi']);
-open(v);
-
-for k = 1:size(inVid,3)
-   imagesc(inVid(:,:,k));
-   pause(1/10);
-   M = getframe(gcf);
-   writeVideo(v,M);
-end
- 
-close(v);
-
-v = VideoWriter([outputDirectory '/vids/' filenamePrefix '_blended_frames' run '.avi']);
-open(v);
-
-for k = 1:size(outframes,4)
-   imagesc(outframes(:,:,:,k));
-   pause(1/10);
-   M = getframe(gcf);
-   writeVideo(v,M);
-end
- 
-close(v);
-
-for f = 1:size(inVid,3)
-    image(outframes(:,:,:,f));
-    pause(1/10);
-end
-=======
 % run = '_run_04';
 % 
 % save(['../../../data/gait/mats/dm_1_Jump_Fwd_Then_Bwd_NW_SE_params_' run '.mat'],'params')
@@ -194,8 +155,6 @@ end
 %     image(outframes(:,:,:,f));
 %     pause(1/10);
 % end
->>>>>>> acd6b15cd1613d9c1f0185516cbbec0db6b7992c
-
 %% figures
 if (params.frame_show == 1)
     fig = figure();

@@ -2,6 +2,7 @@ function [ outVid ] = readVideo_rs( videoFile, nrows, ncols, numframes, sampRate
 v = VideoReader(videoFile);
 
 framect = 1;
+
 for ii = 1:numframes
 	try 
 		frame = readFrame(v);
@@ -14,7 +15,9 @@ for ii = 1:numframes
 	catch
 		break
 	end
+
 end
+
 
 end
 
