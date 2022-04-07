@@ -6,40 +6,47 @@ addpath(genpath('../modeling'));
 addpath(genpath('../aux'));
 addpath(genpath('../io'));
 
-%%  read-in video
+%%  Generate Stim
 
-nrows = 512;
-ncols = 512;
-videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/cat_jump.mp4';
+hsf = 0.01; % 1/512 fundamental frequencies to allow for full resolvement of the frequency
+vsf = 0;
+htf = 0.06;
+vtf = 0;
+hamp = 1;
+vamp = 1;
+write = false;
+numFrames = 80-1;
+dims = [1 1024];
 
-brightness_ratio = 1;
-numframes = 20;
-input_vid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes, 1 );
+vPath = '/home/jonahs/projects/ReImagine/AER_Data/model_stim/hsf_0_vsf_4_htf_2_vtf_0_hamp_255_vamp_255.avi';
+
+frames = CreateStimulus(hsf, vsf, htf, vtf, hamp, vamp, write, vPath, numFrames, dims) + 1;
 
 %% Parameterize model 
 
 params.frame_show                       = 1;
 
-params.enable_shot_noise                = 1;
+params.enable_shot_noise                = 0;
 
 params.time_step                        = 10;
 
-params.leak_ba_rate                     = 0.5;
+params.leak_ba_rate                     = 2.0;
 
-params.percent_threshold_variance       = 2.5;
+params.percent_threshold_variance       = 0;
 
-params.threshold(:,:,1)                 =   112 *ones(size(input_vid(:,:,1)));
-params.threshold(:,:,2)                 =   20 *ones(size(input_vid(:,:,1)));
-params.threshold(:,:,3)                 =   20 *ones(size(input_vid(:,:,1)));
+params.threshold(:,:,1)                 =   112 *ones(size(frames(:,:,1))); % BC thresholds
+params.threshold(:,:,2)                 =   20 *ones(size(frames(:,:,1))); % ON thresholds
+params.threshold(:,:,3)                 =   20 *ones(size(frames(:,:,1))); % OFF thresholds
 
-params.bc_offset                        = 4;
+params.spatial_fe_mode                  = "bandpass";
+params.bc_offset                        = 0;
 params.bc_leak                          = 0;
 params.gc_reset_value                   = 0;
 params.gc_refractory_period             = 0;
 params.oms_reset_value                  = 3;
 params.oms_refractory_period            = 0;
-params.dbg_mode                         = 'photo';
-params.opl_time_constant                = 0.3;
+params.dbg_mode                         = 'opl_str';
+params.opl_time_constant                = 0.8;
 params.hpf_gc_tc                        = 1.0;
 params.hpf_wac_tc                       = 0.4;
 params.resample_threshold               = 0;
@@ -47,20 +54,10 @@ params.rng_settings                     = 0;
 params.enable_sequentialOMS             = 0;
 params.h                                = 0;
 
+
 %% Run Model 
 clc;
-params.enable_shot_noise                = 0;
-[TD, eventFrames, rng_settings, dbgFrames, OMSNeuron, eventCount] = StNvsModel_shotNoise(input_vid, params);
-counts = [eventCount];
-params.enable_shot_noise                = 1;
-for h = 1:10
-    params.h = h;
-    [TD, eventFrames, rng_settings, dbgFrames, OMSNeuron, eventCount] = StNvsModel_shotNoise(input_vid, params);
-    counts = [counts, eventCount];
-end
-x = 0:10
-figure()
-plot(x, counts);
+[TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(frames, params);
 
 %% figures
 if (params.frame_show == 1)
@@ -88,10 +85,7 @@ if (params.frame_show == 1)
     im(2) = imagesc(ax(2),eventFrames(:,:,:,1));
     ax(2).Title.String = ['Accumulated Events: Frame ' num2str(1)];
     set(ax(2), 'xtick', [], 'ytick', []);
-    
-%     v = VideoWriter('../../../../figures/livingroom_walk.avi');
-%     open(v);
-%     
+   
     for ii = 2:size(dbgFrames,3)
 %         fprintf("Frame : %d\n", ii);
         ax(1).Title.String = ['Intensity: Frame ' num2str(ii)];
@@ -103,5 +97,4 @@ if (params.frame_show == 1)
 
         pause(1/60);
     end
-%     close(v);
 end

@@ -92,7 +92,17 @@ params.write_frame_tag = 'proposal_figure_w_diff';
 params.h = 0;
 
 params.enable_pixel_variance        = 0;
-[TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel(double(inVid), params);
+[TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(double(inVid), params);
+counts = [eventCount];
+params.enable_pixel_variance        = 1;
+for h = 1:10
+    params.h = h;
+    [TD, eventFrames, rng_settings, grayFrames, curFrames, eventCount] = RetinaNvsModel_shotNoise(double(inVid), params);
+    counts = [counts, eventCount];
+end
+x = 0:10
+figure()
+plot(x, counts);
 
 
 %%
