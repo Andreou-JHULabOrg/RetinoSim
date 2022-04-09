@@ -10,48 +10,51 @@ addpath(genpath('../io'));
 
 nrows = 512;
 ncols = 512;
-videoFile = '/Users/susanliu/Documents/AndreouResearch/videos/cat_jump.mp4';
+videoFile = '/Volumes/Galatea/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/room_pan.mp4';
+% videoFile = '/Users/jonahs/Documents/research/projects/spike_proc/data/video/js_1_walk_NE_SW.mp4';
 
 brightness_ratio = 1;
-numframes = 20;
+numframes = 100;
 input_vid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes, 1 );
 
 %% Parameterize model 
 
 params.frame_show                       = 1;
 
-params.enable_shot_noise                = 1;
+params.enable_shot_noise                = 0;
 
 params.time_step                        = 10;
 
-params.leak_ba_rate                     = 0.5;
+params.neuron_leak                      =  1.2;
+params.ba_leak                          =  0;
 
-params.percent_threshold_variance       = 2.5;
+params.percent_threshold_variance       = 0;
+params.percent_leak_variance            = 0;
 
-params.threshold(:,:,1)                 =   112 *ones(size(input_vid(:,:,1)));
-params.threshold(:,:,2)                 =   20 *ones(size(input_vid(:,:,1)));
-params.threshold(:,:,3)                 =   20 *ones(size(input_vid(:,:,1)));
+params.threshold(:,:,1)                 =   2 *ones(size(input_vid(:,:,1))); % ON thresholds
+params.threshold(:,:,2)                 =   10 *ones(size(input_vid(:,:,2))); % OFF thresholds
 
-params.bc_offset                        = 4;
+params.spatial_fe_mode                  = "log";
+params.spatial_filter_variances         = [2 2.5];
+params.bc_offset                        = 0;
 params.bc_leak                          = 0;
 params.gc_reset_value                   = 0;
 params.gc_refractory_period             = 0;
 params.oms_reset_value                  = 3;
 params.oms_refractory_period            = 0;
-params.dbg_mode                         = 'photo';
-params.opl_time_constant                = 0.3;
-params.hpf_gc_tc                        = 1.0;
+params.dbg_mode                         = 'on_neuron';
+params.opl_time_constant                = 0.1;
+params.hpf_gc_tc                        = 0.7;
 params.hpf_wac_tc                       = 0.4;
 params.resample_threshold               = 0;
 params.rng_settings                     = 0;
 params.enable_sequentialOMS             = 0;
-params.h                                = 0;
+
 
 %% Run Model 
-clc;
-[TD, eventFrames, rng_settings, dbgFrames, OMSNeuron, eventCount] = StNvsModel(input_vid, params);
+[TD, eventFrames, dbgFrames, OMSNeuron] = RetinoSim(input_vid, params);
 
-%% figures
+%% Plot Outputs
 if (params.frame_show == 1)
     fig = figure();
     

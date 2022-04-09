@@ -6,39 +6,36 @@ addpath(genpath('../modeling'));
 addpath(genpath('../aux'));
 addpath(genpath('../io'));
 
-%%  Generate Stim
+%%  read-in video
 
-hsf = 0.01; % 1/512 fundamental frequencies to allow for full resolvement of the frequency
-vsf = 0;
-htf = 0.06;
-vtf = 0;
-hamp = 1;
-vamp = 1;
-write = false;
-numFrames = 80-1;
-dims = [1 1024];
+nrows = 512;
+ncols = 512;
+% videoFile = '/Volumes/Galatea/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/room_pan.mp4';
+videoFile = '/Users/jonahs/Documents/research/projects/spike_proc/data/video/js_1_walk_NE_SW.mp4';
 
-vPath = '/home/jonahs/projects/ReImagine/AER_Data/model_stim/hsf_0_vsf_4_htf_2_vtf_0_hamp_255_vamp_255.avi';
-
-frames = CreateStimulus(hsf, vsf, htf, vtf, hamp, vamp, write, vPath, numFrames, dims) + 1;
+brightness_ratio = 1;
+numframes = 100;
+input_vid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes, 1 );
 
 %% Parameterize model 
 
 params.frame_show                       = 1;
 
-params.enable_shot_noise                = 0;
+params.enable_shot_noise                = 1;
 
 params.time_step                        = 10;
 
-params.leak_ba_rate                     = 2.0;
+params.neuron_leak                      =  1.2; % 1.2 stable for low pass and bandpass
+params.ba_leak                          =  1.0;
 
 params.percent_threshold_variance       = 0;
+params.percent_leak_variance            = 0;
 
-params.threshold(:,:,1)                 =   112 *ones(size(frames(:,:,1))); % BC thresholds
-params.threshold(:,:,2)                 =   20 *ones(size(frames(:,:,1))); % ON thresholds
-params.threshold(:,:,3)                 =   20 *ones(size(frames(:,:,1))); % OFF thresholds
+params.threshold(:,:,1)                 =   10 *ones(size(input_vid(:,:,1))); % ON thresholds
+params.threshold(:,:,2)                 =   10 *ones(size(input_vid(:,:,2))); % OFF thresholds
 
-params.spatial_fe_mode                  = "bandpass";
+params.spatial_fe_mode                  = "log";
+params.spatial_filter_variances         = [2 2.5];
 params.bc_offset                        = 0;
 params.bc_leak                          = 0;
 params.gc_reset_value                   = 0;
@@ -46,20 +43,18 @@ params.gc_refractory_period             = 0;
 params.oms_reset_value                  = 3;
 params.oms_refractory_period            = 0;
 params.dbg_mode                         = 'opl_str';
-params.opl_time_constant                = 0.8;
+params.opl_time_constant                = 0.9;
 params.hpf_gc_tc                        = 1.0;
 params.hpf_wac_tc                       = 0.4;
 params.resample_threshold               = 0;
 params.rng_settings                     = 0;
 params.enable_sequentialOMS             = 0;
-params.h                                = 0;
 
 
 %% Run Model 
-clc;
-[TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(frames, params);
+[TD, eventFrames, dbgFrames, OMSNeuron] = RetinoSim(input_vid, params);
 
-%% figures
+%% Plot Outputs
 if (params.frame_show == 1)
     fig = figure();
     

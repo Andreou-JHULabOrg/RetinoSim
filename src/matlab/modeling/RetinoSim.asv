@@ -1,4 +1,4 @@
-function [TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(input_video, params)
+function [TD, eventFrames, dbgFrames, OMSNeuron] = RetinoSim(input_video, params)
 %STNVSMODEL An isolated signal processing pipeline to model spatiotemporal pixel array
 %AUTHOR : Jonah P. Sengupta
 %DATE : 11-8-21
@@ -10,19 +10,19 @@ function [TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(input_video, param
 
 
 fprintf("\n---------------------------------------------------------------\n\n");
-fprintf("[SpatioTemporalVS-INFO] Generating spikes from StNvs model...\n");
+fprintf("[RetinoSim-INFO] Generating spikes from StNvs model...\n");
 fprintf("\n---------------------------------------------------------------\n");
 
 tic;
-fprintf("[STVS-INFO] Using parameters:\n");
+fprintf("[RetinoSim-INFO] Using parameters:\n");
 
 param_names = fields(params);
 for p = 1:length(param_names)
 	if size(params.(param_names{p})) == 1
 		try
-			fprintf("[STVS-INFO] %s: %d\n", param_names{p}, params.(param_names{p}));
+			fprintf("[RetinoSim-INFO] %s: %d\n", param_names{p}, params.(param_names{p}));
 		catch
-			fprintf("[STVS-INFO] %s: %s\n", param_names{p}, params.(param_names{p}));
+			fprintf("[RetinoSim-INFO] %s: %s\n", param_names{p}, params.(param_names{p}));
 		end
 	end
 end
@@ -56,19 +56,27 @@ pixel_fe_noise_past = normrnd(0,double(pix_shot_rate),size(grayFrames(:,:,1)));
 
 %%% ----------------------------------------------- Set leakage currents
 
-leak_rate = max(normrnd(params.leak_ba_rate, sqrt(params.leak_ba_rate/2), size(grayFrames(:,:,1))),0);
+neuron_leak_rate = max(normrnd(params.neuron_leak,  (params.percent_leak_variance/100)*params.neuron_leak, size(grayFrames(:,:,1))),0);
+ba_leak_rate    = max(normrnd(params.ba_leak,  (params.percent_leak_variance/100)*params.ba_leak, size(grayFrames(:,:,1))),0);
+
 
 %%% ----------------------------------------------- Create threshold
 %%% distributions
 
-for threshold_idx = 1:3
+for threshold_idx = 1:2
 	threshold_variance = (params.percent_threshold_variance/100)*params.threshold(:,:,threshold_idx);
 	threshold_arrays(:,:,threshold_idx) = params.threshold(:,:,threshold_idx) + normrnd(0,threshold_variance, size(grayFrames(:,:,1)));
 end
 
-threshold_array.bc  = threshold_arrays(:,:,1);
-threshold_array.on  = threshold_arrays(:,:,2);
-threshold_array.off = threshold_arrays(:,:,3);
+threshold_array.on  = threshold_arrays(:,:,1);
+threshold_array.off = threshold_arrays(:,:,2);
+
+if strcmp(params.spatial_fe_mode,"log") || strcmp(params.spatial_fe_mode,"log-lowpass")
+    threshold_array.on  = log(threshold_arrays(:,:,1));
+    threshold_array.off = log(threshold_arrays(:,:,2));  
+    neuron_leak_rate = log(neuron_leak_rate);
+    ba_leak_rate    = log(ba_leak_rate);
+end
 
 onNeuron.state                        = params.gc_reset_value*ones(size(grayFrames(:,:,1)));
 onNeuron.sam            = zeros(size(grayFrames(:,:,1)));
@@ -114,7 +122,7 @@ TD = struct();
 
 for fidx = 2:size(grayFrames,3)
 	
-	fprintf("[SpatioTemporalVS-INFO] processing frame: %d\n", fidx);
+	fprintf("[RetinoSim-INFO] processing frame: %d\n", fidx);
 	
 	onNeuron.numSpikes      = zeros(size(grayFrames(:,:,1)));
 	onNeuron.spikeLocs      = [];
@@ -147,13 +155,13 @@ for fidx = 2:size(grayFrames,3)
 	%%% configuration
 	
 	if strcmp(params.spatial_fe_mode,"bandpass")
-		frame.opl_sr = NormalizeContrast(frame.cur);
+		frame.opl_sr = NormalizeContrast(frame.cur,params.spatial_filter_variances);
 	elseif strcmp(params.spatial_fe_mode,"log-lowpass")
-		horiz = fspecial('gaussian', 15, 2.5);
+		horiz = fspecial('gaussian', 15, params.spatial_filter_variances(1));
 		sr = imfilter(frame.cur, horiz, 'replicate');
 		frame.opl_sr = log(sr);
-	elseif strcmp(params.spatial_fe_mode,"low-pass")
-		horiz = fspecial('gaussian', 15, 2.5);
+	elseif strcmp(params.spatial_fe_mode,"lowpass")
+		horiz = fspecial('gaussian', 15, params.spatial_filter_variances(1));
 		sr = imfilter(frame.cur, horiz, 'replicate');
 		frame.opl_sr = sr;
 	elseif strcmp(params.spatial_fe_mode,"log")
@@ -164,13 +172,13 @@ for fidx = 2:size(grayFrames,3)
 	
 	if (fidx == 2)
 		if strcmp(params.spatial_fe_mode,"bandpass")
-			frame.opl_str_ = NormalizeContrast(frame.past);
+			frame.opl_str_ = NormalizeContrast(frame.past, params.spatial_filter_variances);
 		elseif strcmp(params.spatial_fe_mode,"log-lowpass")
-			horiz = fspecial('gaussian', 15, 2.5);
+			horiz = fspecial('gaussian', 15, params.spatial_filter_variances(1));
 			sr = imfilter(frame.past, horiz, 'replicate');
 			frame.opl_str_ = log(sr);
-		elseif strcmp(params.spatial_fe_mode,"low-pass")
-			horiz = fspecial('gaussian', 15, 2.5);
+		elseif strcmp(params.spatial_fe_mode,"lowpass")
+			horiz = fspecial('gaussian', 15, params.spatial_filter_variances(1));
 			sr = imfilter(frame.past, horiz, 'replicate');
 			frame.opl_str_ = sr;
 		elseif strcmp(params.spatial_fe_mode,"log")
@@ -178,9 +186,15 @@ for fidx = 2:size(grayFrames,3)
 		end
 	else
 		frame.opl_str_   = frame.opl_str;
-	end
+    end
 	
-	frame.opl_str = (params.opl_time_constant)*frame.opl_str_ + (1-params.opl_time_constant)*frame.opl_sr;
+    
+%     opl_tc = max(frame.opl_sr./mean(mean(frame.opl_sr)) * params.opl_time_constant, 0.1);
+%     opl_tc = min(opl_tc,1);
+    tmp = (frame.opl_sr - mean(mean(frame.opl_sr)))./max(max(frame.opl_sr))/2;
+    opl_tc = params.opl_time_constant  + tmp; opl_tc = min(opl_tc,1);
+    
+	frame.opl_str = (1-opl_tc)*frame.opl_str_ + (opl_tc- 0.05)*frame.opl_sr;
 	
 	%%% ----------------------------------------------- Channel rectification
 	%%% ----------------------------------------------- 1st order High pass
@@ -222,9 +236,9 @@ for fidx = 2:size(grayFrames,3)
 	
 	%%% ----------------------------------------------- Apply leak to two l-IAF neurons
 	
-	onNeuron.state      = onNeuron.state    -     leak_rate;
+	onNeuron.state      = onNeuron.state    -     neuron_leak_rate + ba_leak_rate;
 	onNeuron.state      = max(onNeuron.state, 0);
-	offNeuron.state     = offNeuron.state   -     leak_rate;
+	offNeuron.state     = offNeuron.state   -     neuron_leak_rate + ba_leak_rate;
 	offNeuron.state      = max(offNeuron.state, 0);
 	
 	frame.on_neuron     = onNeuron.state;
@@ -267,18 +281,30 @@ for fidx = 2:size(grayFrames,3)
 	
 	[OMSNeuron.events, OMSNeuron, OMSNeuron.Idx] = spikeGeneration(OMSNeuron,OMSNeuron.params, OMSNeuron.Idx, OMSNeuron.events, frames.current_time);
 	
-	
 	% ---- Debug Plug-in
 	
 	dbgFrames(:,:,fidx) = frame.(params.dbg_mode);
 	
 end
 
-[TD.ts, idx] = sort(TD.ts);
-TD.ts = TD.ts' * 1e6;
-TD.x = uint16(TD.x(idx)' - 1); % bring to 0 to sensor width
-TD.y = uint16(TD.y(idx)' - 1); % bring to 0 to sensor height
-TD.p = int8(TD.p(idx)');
+try 
+    [TD.ts, idx] = sort(TD.ts);
+    TD.ts = TD.ts' * 1e6;
+    TD.x = uint16(TD.x(idx)' - 1); % bring to 0 to sensor width
+    TD.y = uint16(TD.y(idx)' - 1); % bring to 0 to sensor height
+    TD.p = int8(TD.p(idx)');
+    t = toc;
+
+    fprintf("[RetinoSim-INFO] RetinoSim took %0.3f seconds to process %d frames of %dx%d resolution.\n", t, size(grayFrames,3), size(grayFrames,1), size(grayFrames,2));
+    fprintf("[RetinoSim-INFO] Run statistics:\n \t\t Frames-per-second: %0.3f\n \t\t Events-per-second: %0.3f\n", size(grayFrames,3)/t, length(TD.ts)/t);
+catch 
+    fprintf("No events found!\n");
+end
+
+
+
+
+
 
 % Sequential OMS computation based on spike timings
 
@@ -316,6 +342,9 @@ if params.enable_sequentialOMS
 		
 	end
 end
+
+
+
 
 
 end
