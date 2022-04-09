@@ -21,7 +21,7 @@ input_vid = brightness_ratio * readVideo_rs( videoFile, nrows, ncols, numframes,
 
 params.frame_show                       = 1;
 
-params.enable_shot_noise                = 1;
+params.enable_shot_noise                = 0;
 
 params.time_step                        = 10;
 
@@ -31,10 +31,10 @@ params.ba_leak                          =  1.0;
 params.percent_threshold_variance       = 0;
 params.percent_leak_variance            = 0;
 
-params.threshold(:,:,1)                 =   10 *ones(size(input_vid(:,:,1))); % ON thresholds
-params.threshold(:,:,2)                 =   10 *ones(size(input_vid(:,:,2))); % OFF thresholds
+params.threshold(:,:,1)                 =   12 *ones(size(input_vid(:,:,1))); % ON thresholds
+params.threshold(:,:,2)                 =   12 *ones(size(input_vid(:,:,2))); % OFF thresholds
 
-params.spatial_fe_mode                  = "log";
+params.spatial_fe_mode                  = "bandpass";
 params.spatial_filter_variances         = [2 2.5];
 params.bc_offset                        = 0;
 params.bc_leak                          = 0;

@@ -140,8 +140,8 @@ for fidx = 2:size(grayFrames,3)
 		pix_shot_rate       = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxIph-grayFrames(:,:,fidx));
 		pixel_fe_noise      = normrnd(0,double(pix_shot_rate),size(grayFrames(:,:,1)));
 		
-		frame.cur   = max(grayFrames(:,:,fidx) + pixel_fe_noise,0);
-		frame.past  = max(grayFrames(:,:,fidx-1) +  pixel_fe_noise_past,0);
+		frame.cur   = max(grayFrames(:,:,fidx) + 0.1*pixel_fe_noise,0.01);
+		frame.past  = max(grayFrames(:,:,fidx-1) +  0.1*pixel_fe_noise_past,0.01);
 	else
 		frame.cur   = grayFrames(:,:,fidx);
 		frame.past  = grayFrames(:,:,fidx-1);
@@ -220,19 +220,13 @@ for fidx = 2:size(grayFrames,3)
 	onNeuron.state_   = onNeuron.state;
 	offNeuron.state_  = offNeuron.state;
 	
-	%     high_pass_response.on = ((params.hpf_gc_tc)*onNeuron.state_(onIdx) + (params.hpf_gc_tc)*(diffOPL(onIdx)));
-	%     high_pass_response.off = ((params.hpf_gc_tc)*offNeuron.state_(offIdx) + (params.hpf_gc_tc)*(diffOPL(offIdx)));
-	% JS - remove
 	high_pass_response.on = zeros(size(grayFrames(:,:,1)));
 	high_pass_response.on(onIdx) = (params.hpf_gc_tc)*(abs(diffOPL(onIdx)));
 	high_pass_response.off = zeros(size(grayFrames(:,:,1)));
 	high_pass_response.off(offIdx) = (params.hpf_gc_tc)*(abs(diffOPL(offIdx)));
 	
 	%Integrate on Neurons
-	
-% 	onNeuron.state(onIdx) = onNeuron.state(onIdx) + diffOPL(onIdx);
-% 	offNeuron.state(offIdx) = offNeuron.state(offIdx) + diffOPL(offIdx);
-	
+		
 	onNeuron.state(onIdx) = onNeuron.state(onIdx) + abs(high_pass_response.on(onIdx));
 	offNeuron.state(offIdx) = offNeuron.state(offIdx) + abs(high_pass_response.off(offIdx));
 	
@@ -302,11 +296,6 @@ try
 catch 
     fprintf("No events found!\n");
 end
-
-
-
-
-
 
 % Sequential OMS computation based on spike timings
 
