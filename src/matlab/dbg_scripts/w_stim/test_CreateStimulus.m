@@ -11,10 +11,11 @@
 % write: whether write to a file
 % vPath: the file to write to
 
+%%
 clear; clc;
-
-addpath(genpath('../modeling'))
-
+%%
+addpath(genpath('../../modeling'))
+%%
 hsf = 0.1; % 1/512 fundamental frequencies to allow for full resolvement of the frequency
 vsf = 0.1;
 htf = 0.05;
@@ -28,7 +29,7 @@ vPath = '/home/jonahs/projects/ReImagine/AER_Data/model_stim/hsf_0_vsf_4_htf_2_v
 dims = [512 512];
 
 frames = CreateStimulus(hsf, vsf, htf, vtf, hamp, vamp, write, vPath, 99, dims);
-
+%%
 % 2D DFT of input
 x_ = frames(:,:,1);
 
@@ -47,7 +48,7 @@ for ii = 2:11
 	
 	gamma_h = ii;
 	horiz = fspecial('gaussian', 512, gamma_h);
-	pr = fspecial('gaussian',512, 2);
+	pr = fspecial('gaussian',512, 1.9);
 	hc = (pr - horiz);
 
 	subplot(2,5,ii-1);
