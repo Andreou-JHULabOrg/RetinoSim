@@ -1,4 +1,4 @@
-function [TD, eventFrames, dbgFrames, OMSNeuron] = RetinoSim(input_video, params)
+function [TD, eventFrames, dbgFrames, OMSNeuron, pixDbg] = RetinoSim(input_video, params)
 %STNVSMODEL An isolated signal processing pipeline to model spatiotemporal pixel array
 %AUTHOR : Jonah P. Sengupta
 %DATE : 11-8-21
@@ -118,7 +118,11 @@ frames.current_time  = 0;
 
 TD = struct();
 
-
+pixDbg = struct();
+pixDbg.photo = zeros(1,size(grayFrames,3));
+pixDbg.opl_str = zeros(1,size(grayFrames,3));
+pixDbg.on_neuron = zeros(1,size(grayFrames,3));
+pixDbg.off_neuron = zeros(1,size(grayFrames,3));
 
 for fidx = 2:size(grayFrames,3)
 	
@@ -145,10 +149,14 @@ for fidx = 2:size(grayFrames,3)
 	else
 		frame.cur   = grayFrames(:,:,fidx);
 		frame.past  = grayFrames(:,:,fidx-1);
-	end
-	
+    end
+    
+    
 	frame.photo = frame.cur;
 	frame.idx   = fidx;
+    
+    pixDbg.photo(fidx) = frame.photo(params.debug_pixel(1),params.debug_pixel(2));
+
 	
 	%%% ----------------------------------------------- OPL: Spatial FE
 	%%% configuration
@@ -197,6 +205,9 @@ for fidx = 2:size(grayFrames,3)
     opl_tc = opl_tc - 0.05;
     
 	frame.opl_str = (1-opl_tc).*frame.opl_str_ + (opl_tc).*frame.opl_sr;
+    
+    pixDbg.opl_str(fidx) = frame.opl_str(params.debug_pixel(1),params.debug_pixel(2));
+
 	
 	%%% ----------------------------------------------- Channel rectification
 	%%% ----------------------------------------------- 1st order High pass
@@ -239,6 +250,9 @@ for fidx = 2:size(grayFrames,3)
 	
 	frame.on_neuron     = onNeuron.state;
 	frame.off_neuron    = offNeuron.state;
+    
+    pixDbg.on_neuron(fidx) = frame.on_neuron(params.debug_pixel(1),params.debug_pixel(2));
+    pixDbg.off_neuron(fidx) = frame.off_neuron(params.debug_pixel(1),params.debug_pixel(2));
 	
 	%%% ----------------------------------------------- Spike generation
 	
@@ -285,7 +299,7 @@ end
 
 try 
     [TD.ts, idx] = sort(TD.ts);
-    TD.ts = TD.ts' * 1e6;
+    TD.ts = uint32(TD.ts' * 1e3);
     TD.x = uint16(TD.x(idx)' - 1); % bring to 0 to sensor width
     TD.y = uint16(TD.y(idx)' - 1); % bring to 0 to sensor height
     TD.p = int8(TD.p(idx)');
@@ -294,7 +308,7 @@ try
     fprintf("[RetinoSim-INFO] RetinoSim took %0.3f seconds to process %d frames of %dx%d resolution.\n", t, size(grayFrames,3), size(grayFrames,1), size(grayFrames,2));
     fprintf("[RetinoSim-INFO] Run statistics:\n \t\t Frames-per-second: %0.3f\n \t\t Events-per-second: %0.3f\n", size(grayFrames,3)/t, length(TD.ts)/t);
 catch 
-    fprintf("No events found!\n");
+    fprintf("No events extracted!\n");
 end
 
 % Sequential OMS computation based on spike timings
@@ -333,9 +347,5 @@ if params.enable_sequentialOMS
 		
 	end
 end
-
-
-
-
 
 end
