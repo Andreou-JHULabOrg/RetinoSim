@@ -36,7 +36,8 @@
 *.DS_Store*
 
 # Folders
-data/*
+data/gait/*
+data/sea/*
 src/cpp/build
 
 .DS_Store
