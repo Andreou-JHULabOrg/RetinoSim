@@ -26,7 +26,7 @@ for sidx = 1:neuronObj.numSpikeLocs
     
     for ee = 1:neuronObj.numSpikes(rix,cix)
         if params.refractory_period > 0
-            if ts(ee) - neuronObj.sam(ii,jj) > params.refractory_period
+            if ts(ee) - neuronObj.sam(rix,cix) > params.refractory_period
                 events.x(eventIdx) = cix;
                 events.y(eventIdx) = rix;
                 events.p(eventIdx) = params.polarity;

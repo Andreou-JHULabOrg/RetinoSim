@@ -57,7 +57,7 @@ if customize_params == 1
     
     params.hpf_gc_tc                        = 0.9; % set integration TC for neuron
     params.gc_reset_value                   = 0;
-    params.gc_refractory_period             = 0;
+    params.gc_refractory_period             = 500;
     params.oms_reset_value                  = 3; % in-progress
     params.oms_refractory_period            = 0; % in-progress
     params.hpf_wac_tc                       = 0.4; % in-progress

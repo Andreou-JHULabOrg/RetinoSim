@@ -27,7 +27,7 @@ ae.ts = TD.ts;
 if TD.p == 1
     rf=SAM.on(ae.y + (-params.rf_dim:params.rf_dim), ae.x+  (-params.rf_dim:params.rf_dim));
 else
-    rf=SAM.on(ae.y + (-params.rf_dim:params.rf_dim), ae.x+  (-params.rf_dim:params.rf_dim));
+    rf=SAM.off(ae.y + (-params.rf_dim:params.rf_dim), ae.x+  (-params.rf_dim:params.rf_dim));
 end
 
 centerCoord = ceil(size(rf)/2);
