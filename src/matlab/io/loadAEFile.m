@@ -32,9 +32,9 @@ switch extension
 		TD.p = TD.p'*2 - 1;
 	case '.txt'
 		TD_mat = table2array(readtable(filepath));
-		TD.ts = TD_mat(:,1)*1e6; 
-		TD.x = TD_mat(:,2);
-		TD.y = TD_mat(:,3); 
+		TD.ts = uint32(TD_mat(:,1)*1e6); 
+		TD.x = uint16(TD_mat(:,2));
+		TD.y = uint16(TD_mat(:,3)); 
 		TD.p = 2*TD_mat(:,4)-1;
 	case '.bag'
 		bag = rosbag(filepath);

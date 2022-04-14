@@ -14,10 +14,10 @@ addpath(genpath('../io'));
 
 %% Choose to use pre-confiugred parameters or customize (1)
 
-customize_params = true;
+customize_params = false;
 save_params = false;
 write_video  = false;
-params_file_name = 'params_bandpass_small_var';
+params_file_name = 'params_log_small_var';
 
 %%  Import video
 
@@ -25,7 +25,7 @@ nrows = 512;
 ncols = 512;
 
 % videoFile = '/Volumes/Galatea/Users/jonahs/Dropbox/RetinaNVSModel_resources/videos/room_pan.mp4';
-videoFile = '/Users/jonahs/Documents/research/projects/spike_proc/data/video/js_1_walk_NE_SW.mp4';
+videoFile = '../../../data/js_1_walk_NE_SW.mp4';
 
 brightness_ratio = 1;
 numframes = 100;
@@ -39,16 +39,16 @@ if customize_params == 1
     
     params.time_step                        = 10; % sets timestep in milliseconds (1/fps * 1e3)
     
-    params.neuron_leak                      =  1.5; % neuron leakage (leak down) (min set to 0 for log/log-lowpass)
+    params.neuron_leak                      =  1.1; % neuron leakage (leak down) (min set to 0 for log/log-lowpass)
     params.ba_leak                          =  0; % configure background activity rate (leak-up) (min set to 0 for log/log-lowpass)
     
-    params.percent_threshold_variance       = 5.0; %set variance of threshold FPN
-    params.percent_leak_variance            = 2.5; %set variance of leakage FPN
+    params.percent_threshold_variance       = 0.0; %set variance of threshold FPN
+    params.percent_leak_variance            = 0.0; %set variance of leakage FPN
     
-    params.threshold(:,:,1)                 =   15 *ones(size(input_vid(:,:,1))); % ON thresholds
-    params.threshold(:,:,2)                 =   15 *ones(size(input_vid(:,:,2))); % OFF thresholds
+    params.threshold(:,:,1)                 =   10 *ones(size(input_vid(:,:,1))); % ON thresholds
+    params.threshold(:,:,2)                 =   10 *ones(size(input_vid(:,:,2))); % OFF thresholds
     
-    params.spatial_fe_mode                  = "bandpass"; % configure spatial FE mode (options = 'log', 'log-lowpass', 'linear', 'lowpass', 'bandpass')
+    params.spatial_fe_mode                  = "log"; % configure spatial FE mode (options = 'log', 'log-lowpass', 'linear', 'lowpass', 'bandpass')
     params.spatial_filter_variances         = [2 2.2];
     params.opl_time_constant                = 0.9; % set mean time constant for OPL
 

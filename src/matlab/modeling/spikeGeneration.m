@@ -1,6 +1,6 @@
 function [events_, neuronObj_, eventIdx_] = spikeGeneration(neuronObj,params, eventIdx, events, time_in)
 %SPIKEGENERATION Summary of this function goes here
-
+ neuronObj.spikeLocs = [];
 [neuronObj.spikeLocs(:,1), neuronObj.spikeLocs(:,2)]   = find(floor(neuronObj.state./params.gc_threshold) > 0);
 neuronObj.numSpikeLocs = length(neuronObj.spikeLocs(:,1));
 

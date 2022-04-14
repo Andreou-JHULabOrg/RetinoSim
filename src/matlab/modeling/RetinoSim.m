@@ -199,10 +199,10 @@ for fidx = 2:size(grayFrames,3)
 		frame.opl_str_   = frame.opl_str;
     end
 	
-    tmp = (frame.opl_sr - mean(mean(frame.opl_sr)))./max(max(frame.opl_sr))/2;
+    tmp = (frame.opl_sr - mean(mean(frame.opl_sr)))./max(max(frame.opl_sr))/16;
     opl_tc = params.opl_time_constant  + tmp; opl_tc = min(opl_tc,1);
     
-    opl_tc = opl_tc - 0.05;
+    opl_tc = opl_tc - 0.025;
     
 	frame.opl_str = (1-opl_tc).*frame.opl_str_ + (opl_tc).*frame.opl_sr;
     
@@ -267,7 +267,7 @@ for fidx = 2:size(grayFrames,3)
 	spikeGenParams.gc_threshold = threshold_array.on;
 	spikeGenParams.polarity = 1;
 	[TD, onNeuron, eventIdx] = spikeGeneration(onNeuron,spikeGenParams, eventIdx, TD, frames.current_time);
-	eventFrames(:,:,1,fidx) = onNeuron.numSpikes;
+	eventFrames(:,:,3,fidx) = onNeuron.numSpikes;
 	
 	%%% ----------------------------------------------- Parallelized OMS Ganglion Cell
 	%%%% high-pass filter of large surround spatially filtered (averaged)
