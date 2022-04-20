@@ -10,7 +10,7 @@ function [TD, eventFrames, dbgFrames, OMSNeuron, pixDbg] = RetinoSim(input_video
 
 
 fprintf("\n---------------------------------------------------------------\n\n");
-fprintf("[RetinoSim-INFO] Generating spikes from StNvs model...\n");
+fprintf("[RetinoSim-INFO] Generating spikes from RetinoSim model...\n");
 fprintf("\n---------------------------------------------------------------\n");
 
 tic;
