@@ -175,7 +175,7 @@ for fidx = 2:size(grayFrames,3)
 		frame.opl_sr = log(frame.cur);
     else
         frame.opl_sr = frame.cur;
-	end
+    end
 	
 	%%% ----------------------------------------------- OPL: 1st order Temporal lowpass
 	

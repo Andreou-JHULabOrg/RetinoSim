@@ -55,6 +55,9 @@ classdef RetinoSimGUI < matlab.apps.AppBase
         UIAxes                          matlab.ui.control.UIAxes
     end
     
+    properties (Access = public)
+        TD = struct();
+    end
     properties (Access = private)
         model_params = struct('gc_reset_value', 0, ...
             'oms_reset_value', 0, ...
@@ -71,7 +74,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
         input_video = zeros(256,256,10);
         event_video = zeros(256,256,3,10);
         dbg_video = zeros(256,256,10);
-        TD = struct();
+        
         io_params = struct('rows', 0, 'cols', 0, 'frames', 0, 'in_path', 0,'out_path', 0);
     end
     
@@ -137,22 +140,26 @@ classdef RetinoSimGUI < matlab.apps.AppBase
         
         function UpdateSpatialFilter(app,event)
           
-            app.model_params.spatial_fe_mode = app.SpatialFEModeListBox.Value;
+            
             app.model_params.spatial_filter_variances = [app.SpatialVariance1EditField.Value app.SpatialVariance2EditField.Value];
             
             switch app.SpatialFEModeListBox.Value
                 case 'Log'
                     spat_filt = zeros(15,15); spat_filt(8,8) = 1;
+                    app.model_params.spatial_fe_mode = 'log';
                 case 'Log-lowpass'
                     spat_filt = fspecial('gaussian', 15, app.model_params.spatial_filter_variances(1));
+                    app.model_params.spatial_fe_mode = 'log-lowpass';
                 case 'Linear'
                     spat_filt = zeros(15,15); spat_filt(8,8) = 1;
                 case 'Lowpass'
                     spat_filt = fspecial('gaussian', 15, app.model_params.spatial_filter_variances(1));
+                    app.model_params.spatial_fe_mode = 'lowpass';
                 case 'Bandpass'
                     horiz = fspecial('gaussian', 15, app.model_params.spatial_filter_variances(2));
                     pr = fspecial('gaussian',15, app.model_params.spatial_filter_variances(1));
                     spat_filt = pr - horiz;
+                    app.model_params.spatial_fe_mode = 'bandpass';
             end
             
             surf(app.UIAxes2_3, spat_filt);
@@ -195,6 +202,11 @@ classdef RetinoSimGUI < matlab.apps.AppBase
         end
         
         function ReadInputVideo(app,event)
+            
+            [file,path] = uigetfile('*.mp4;*.avi', 'Pick a input video file');
+            app.InputVideoFileEditField.Value = [path file];
+            app.io_params.in_path = app.InputVideoFileEditField.Value;
+            
             app.input_video = readVideo_rs( app.io_params.in_path, app.io_params.rows, app.io_params.cols, app.io_params.frames, 1 );
             fprintf('[RetinoGUI-INFO] Loaded input video from %s\n', app.io_params.in_path);
             app.UIAxes.XLim = [0 app.io_params.cols];
@@ -211,15 +223,21 @@ classdef RetinoSimGUI < matlab.apps.AppBase
         
         function RunModel(app,event)
             fprintf('[RetinoGUI-INFO] Running Model\n');
+            
+            app.RunModelButton.Text = 'Running Model...';
 
             [app.TD, app.event_video, app.dbg_video, ~, ~] = RetinoSim(app.input_video, app.model_params);
             
             app.RunModelButton.Value = 0;
+            
+            app.RunModelButton.Text = 'Run Model';
 
         end
         
         function PlotModel(app,event)
             fprintf('[RetinoGUI-INFO] Plotting Model\n');
+            
+            app.PlotOutputButton.Text = 'Plotting...';
             
             app.UIAxes.XLim = [0 app.io_params.cols];
             app.UIAxes.YLim = [0 app.io_params.rows];
@@ -228,7 +246,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             app.UIAxes_2.YLim = [0 app.io_params.rows];
             
             im(1) = imagesc(app.UIAxes,app.dbg_video(:,:,1));
-            im(2) = imagesc(app.UIAxes,app.event_video(:,:,:,1));
+            im(2) = imagesc(app.UIAxes_2,app.event_video(:,:,:,1));
             
             for fidx  = 1:size(app.dbg_video,3)
                 set(im(1),'cdata',app.dbg_video(:,:,fidx));
@@ -238,6 +256,30 @@ classdef RetinoSimGUI < matlab.apps.AppBase
 
             
             app.PlotOutputButton.Value = 0;
+            app.PlotOutputButton.Text = 'Plot Model';
+
+
+        end
+        
+        function SaveOutputs(app,event)
+            
+            [file,path] = uiputfile('*', 'Pick an output file header and location');
+            app.OutputVideoFileEditField.Value = [path file];
+            app.io_params.out_path = app.OutputVideoFileEditField.Value;
+            
+            fprintf('[RetinoGUI-INFO] Saving Outputs to %s\n',app.OutputVideoFileEditField.Value);
+
+            
+            filepath = [app.OutputVideoFileEditField.Value '.avi'];
+            writeOutputVideo(app.event_video,filepath);
+            
+            outframes = videoBlend(app.input_video, app.event_video, 0, 1, 'test.avi');
+            filepath = [app.OutputVideoFileEditField.Value '_blended.avi'];
+            writeOutputVideo(outframes,filepath);
+            
+            filepath = [app.OutputVideoFileEditField.Value '_events.mat'];
+            TD = app.TD;
+            save(filepath, 'TD');
 
         end
     end
@@ -259,8 +301,8 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             % Create UIAxes
             app.UIAxes = uiaxes(app.UIFigure);
             title(app.UIAxes, 'Debug Frames')
-            xlabel(app.UIAxes, 'X')
-            ylabel(app.UIAxes, 'Y')
+%             xlabel(app.UIAxes, 'X')
+%             ylabel(app.UIAxes, 'Y')
             app.UIAxes.Position = [21 403 470 400];
             app.UIAxes.XTick = [];
             app.UIAxes.YTick = [];
@@ -268,8 +310,8 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             % Create UIAxes_2
             app.UIAxes_2 = uiaxes(app.UIFigure);
             title(app.UIAxes_2, 'Event Frames')
-            xlabel(app.UIAxes_2, 'X')
-            ylabel(app.UIAxes_2, 'Y')
+%             xlabel(app.UIAxes_2, 'X')
+%             ylabel(app.UIAxes_2, 'Y')
             app.UIAxes_2.Position = [491 403 510 400];
             app.UIAxes_2.XTick = [];
             app.UIAxes_2.YTick = [];
@@ -362,7 +404,6 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             app.model_params.ba_leak = app.BALeakageEditField.Value;
             app.BALeakageEditField.ValueChangedFcn = createCallbackFcn(app, @UpdateLeakage, true);
 
-            
              % Create LeakVarianceLabel
             app.LeakVarianceLabel = uilabel(app.UIFigure);
             app.LeakVarianceLabel.HorizontalAlignment = 'center';
@@ -395,6 +436,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             % Create SpatialVariance1EditField
             app.SpatialVariance1EditField = uieditfield(app.UIFigure, 'numeric');
             app.SpatialVariance1EditField.Position = [1060 20 100 22];
+            app.SpatialVariance1EditField.Value = 2;
             app.SpatialVariance1EditField.ValueChangedFcn = createCallbackFcn(app, @UpdateSpatialFilter, true);
 
             % Create SpatialVariance2EditFieldLabel
@@ -406,6 +448,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             % Create SpatialVariance2EditField
             app.SpatialVariance2EditField = uieditfield(app.UIFigure, 'numeric');
             app.SpatialVariance2EditField.Position = [1200 20 102 22];
+            app.SpatialVariance2EditField.Value = 2.3;
             app.SpatialVariance2EditField.ValueChangedFcn = createCallbackFcn(app, @UpdateSpatialFilter, true);
             
            %% Frontend
@@ -533,7 +576,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             app.InputVideoFileEditField = uieditfield(app.UIFigure, 'text');
             app.InputVideoFileEditField.ValueChangedFcn = createCallbackFcn(app, @UpdateIOConfig, true);
             app.InputVideoFileEditField.Position = [205 80 176 22];
-            app.InputVideoFileEditField.Value = 'tmp.avi';
+            app.InputVideoFileEditField.Value = '../../../data/room_pan.mp4';
 
             % Create OutputVideoFileEditFieldLabel
             app.OutputVideoFileEditFieldLabel = uilabel(app.UIFigure);
@@ -544,20 +587,20 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             % Create OutputVideoFileEditField
             app.OutputVideoFileEditField = uieditfield(app.UIFigure, 'text');
             app.OutputVideoFileEditField.Position = [775 80 177 22];
-            app.OutputVideoFileEditField.Value = 'out.avi';
+            app.OutputVideoFileEditField.Value = '../../../data/gui_out';
             app.OutputVideoFileEditField.ValueChangedFcn = createCallbackFcn(app, @UpdateIOConfig, true);
 
             % Create SaveVideoButton
             app.SaveVideoButton = uibutton(app.UIFigure, 'push');
             app.SaveVideoButton.Position = [665 80 100 22];
             app.SaveVideoButton.Text = 'Save Video';
+            app.SaveVideoButton.ButtonPushedFcn = createCallbackFcn(app, @SaveOutputs, true);
 
             % Create LoadVideoButton
             app.LoadVideoButton = uibutton(app.UIFigure, 'push');
             app.LoadVideoButton.Position = [101 80 100 22];
             app.LoadVideoButton.Text = 'Load Video';
             app.LoadVideoButton.ButtonPushedFcn = createCallbackFcn(app, @ReadInputVideo, true);
-
 
             % Create NumberRowsEditFieldLabel
             app.NumberRowsEditFieldLabel = uilabel(app.UIFigure);
