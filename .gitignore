@@ -40,5 +40,9 @@ data/gait/*
 data/sea/*
 src/cpp/build
 
+src/dev
+src/matlab/modeling/dev
+src/matlab/dbg_scripts/dev
+
 .DS_Store
 
