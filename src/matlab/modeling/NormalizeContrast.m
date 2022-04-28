@@ -8,7 +8,7 @@ function [imgOut] = NormalizeContrast(imgIn, variances)
     img_current = imfilter(img_16, pr, 'replicate');
     img_c = alpha*double(img_current)-double(img_bg); % find the contrast
     img_c = img_c - min(min(img_c)); % bring to pos
-    imgOut = img_c/mean(mean(img_c))*255; % normalize and scale
+    imgOut = img_c/mean(mean(img_c))*127; % normalize and scale
 
 end
 

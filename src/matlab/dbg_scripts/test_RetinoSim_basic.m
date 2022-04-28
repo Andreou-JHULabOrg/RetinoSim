@@ -14,7 +14,7 @@ addpath(genpath('../io'));
 
 %% Choose to use pre-confiugred parameters or customize (1)
 
-customize_params = false;
+customize_params = true;
 save_params = false;
 write_video  = false;
 params_file_name = 'params_log_small_var';
@@ -40,7 +40,7 @@ if customize_params == 1
     params.time_step                        = 10; % sets timestep in milliseconds (1/fps * 1e3)
     
     params.neuron_leak                      =  1.1; % neuron leakage (leak down) (min set to 0 for log/log-lowpass)
-    params.ba_leak                          =  0; % configure background activity rate (leak-up) (min set to 0 for log/log-lowpass)
+    params.ba_leak                          =  1.1; % configure background activity rate (leak-up) (min set to 0 for log/log-lowpass)
     
     params.percent_threshold_variance       = 0.0; %set variance of threshold FPN
     params.percent_leak_variance            = 0.0; %set variance of leakage FPN

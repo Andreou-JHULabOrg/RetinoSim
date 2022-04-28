@@ -49,7 +49,7 @@ maxLog = max(max(grayFrames(:,:,1)));
 timescale           = 10e-6; % S
 q                   = 1.62e-19; % C
 average_current     = 1e-9; % A
-num_devices         = 10;
+num_devices         = 2;
 pix_shot_rate        = (sqrt(2*num_devices*average_current*q*(1/timescale))/average_current) .* (maxLog-grayFrames(:,:,1));
 pixel_fe_noise_past = normrnd(0,double(pix_shot_rate),size(grayFrames(:,:,1)));
 
@@ -305,7 +305,7 @@ try
     TD.p = int8(TD.p(idx)');
     t = toc;
 
-    fprintf("[RetinoSim-INFO] RetinoSim took %0.3f seconds to process %d frames of %dx%d resolution.\n", t, size(grayFrames,3), size(grayFrames,1), size(grayFrames,2));
+    fprintf("[RetinoSim-INFO] RetinoSim took %0.3f seconds to generated %d events from %d frames of %dx%d resolution.\n", t,length(TD.ts), size(grayFrames,3), size(grayFrames,1), size(grayFrames,2));
     fprintf("[RetinoSim-INFO] Run statistics:\n \t\t Frames-per-second: %0.3f\n \t\t Events-per-second: %0.3f\n", size(grayFrames,3)/t, length(TD.ts)/t);
 catch 
     fprintf("No events extracted!\n");
