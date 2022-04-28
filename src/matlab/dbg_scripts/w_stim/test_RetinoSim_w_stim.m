@@ -56,7 +56,7 @@ params.enable_sequentialOMS             = 0;
 
 %% Run Model 
 clc;
-[TD, eventFrames, dbgFrames, OMSNeuron] = StNvsModel(frames, params);
+[TD, eventFrames, dbgFrames, OMSNeuron] = RetinoSim(frames, params);
 
 %% figures
 if (params.frame_show == 1)

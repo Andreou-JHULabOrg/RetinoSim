@@ -38,7 +38,7 @@ Xabs = abs(fftshift(X));
 figure();
 imagesc(Xabs)
 
-%2D DFT of Bandpass filter
+%% 2D DFT of Bandpass filter
 
 figure();
 
@@ -47,9 +47,12 @@ farr=zeros(10,512,512);
 for ii = 2:11
 	
 	gamma_h = ii;
-	horiz = fspecial('gaussian', 512, gamma_h);
+	horiz = fspecial('gaussian', 512, ii);
 	pr = fspecial('gaussian',512, 1.9);
 	hc = (pr - horiz);
+    
+    
+
 
 	subplot(2,5,ii-1);
 	F = fft2(hc);
@@ -65,8 +68,11 @@ for ii = 2:11
 % 	set(gca, 'XTickLabels', xt, 'XTickLabelRotation', 90);
     set(gca, 'YTick', []);
 	set(gca, 'XTick', []);
-	title(['FFT of OPL Spatial Filter with $\gamma_{h}$ =' num2str(ii)], 'interpreter', 'latex')
+	title(['$\gamma_{h}$ =' num2str(ii)], 'interpreter', 'latex')
 end
+
+sgtitle(['OPL 2D FFT with $\gamma_{c}=1.9$'], 'interpreter', 'latex')
+
 
 %Plot Spectral response of spatial filter
 
@@ -74,6 +80,7 @@ figure();
 legend_cells = {};
 for ii = 1:10
 fSlice = squeeze(farr(ii,256,256:end));
+fSlice = fSlice./max(fSlice);
 hold on
 plot((0:256)/512, fSlice);
 legend_cells{ii} = ['\gamma_{h} =' num2str(ii+1)];
@@ -83,11 +90,66 @@ legend(legend_cells);
 hold off
 grid on
 xlabel('Cyc./pix.', 'interpreter','latex');
+title('FFT Slice with $\gamma_{c}=1.9$', 'interpreter', 'latex');
+
+
+%%
+figure();
+
+farr=zeros(10,512,512);
+
+for ii = 1:10
+	
+	gamma_h = ii+0.1;
+	horiz = fspecial('gaussian', 512, gamma_h);
+	pr = fspecial('gaussian',512, ii);
+	hc = (pr - horiz);
+    
+    
+
+
+	subplot(2,5,ii);
+	F = fft2(hc);
+	Fabs = abs(fftshift(F));
+	fg = imagesc(Fabs);
+	
+	farr(ii,:,:) = Fabs;
+	
+	xt = get(gca, 'XTick'); xt = (xt - 256)/512;
+	yt = get(gca, 'YTick'); yt = (yt - 256)/512;
+
+% 	set(gca, 'YTickLabels', yt);
+% 	set(gca, 'XTickLabels', xt, 'XTickLabelRotation', 90);
+    set(gca, 'YTick', []);
+	set(gca, 'XTick', []);
+	title(['$\gamma_{c}$ =' num2str(ii)], 'interpreter', 'latex')
+end
+
+sgtitle(['OPL 2D FFT with $\gamma_{c}-\gamma_{h}=0.1$'], 'interpreter', 'latex')
+
+
+%Plot Spectral response of spatial filter
+
+figure();
+legend_cells = {};
+for ii = 1:10
+fSlice = squeeze(farr(ii,256,256:end));
+fSlice = fSlice./max(fSlice);
+hold on
+plot((0:256)/512, fSlice);
+legend_cells{ii} = ['\gamma_{c} =' num2str(ii)];
+end
+legend(legend_cells);
+
+hold off
+grid on
+xlabel('Cyc./pix.', 'interpreter','latex');
+title('FFT Slice with $\gamma_{c}-\gamma_{h}=0.1$', 'interpreter', 'latex');
 
 % figure();
 % surf(hc)
 
-
+%%
 
 
 

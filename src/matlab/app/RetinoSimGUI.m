@@ -116,9 +116,11 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             tMat0 = threshold_arrays(:,:,1);
             tMat1 = threshold_arrays(:,:,2);
             histogram(app.UIAxes2, tMat0(:));
-            hold on
+            hold(app.UIAxes2,'on')
             histogram(app.UIAxes2, tMat1(:));
-            hold off
+            hold(app.UIAxes2,'off')
+            
+            legend(app.UIAxes2,'ON','OFF');
         end
         
         function UpdateLeakage(app,event)
@@ -133,9 +135,11 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             lMat0 = neuron_leak_rate;
             lMat1 = ba_leak_rate;
             histogram(app.UIAxes2_2, lMat0(:));
-            hold on
+            hold(app.UIAxes2_2,'on')
             histogram(app.UIAxes2_2, lMat1(:));
-            hold off
+            hold(app.UIAxes2_2,'off')
+            
+            legend(app.UIAxes2_2,'Neuron Leakage','BA Leakage');
         end
         
         function UpdateSpatialFilter(app,event)
@@ -152,6 +156,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
                     app.model_params.spatial_fe_mode = 'log-lowpass';
                 case 'Linear'
                     spat_filt = zeros(15,15); spat_filt(8,8) = 1;
+                    app.model_params.spatial_fe_mode = 'linear';
                 case 'Lowpass'
                     spat_filt = fspecial('gaussian', 15, app.model_params.spatial_filter_variances(1));
                     app.model_params.spatial_fe_mode = 'lowpass';
@@ -212,10 +217,11 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             app.UIAxes.XLim = [0 app.io_params.cols];
             app.UIAxes.YLim = [0 app.io_params.rows];
             
-            im(1) = imagesc(app.UIAxes,app.input_video(:,:,1));
+            im(1) = image(app.UIAxes,app.input_video(:,:,1));
+            colormap(app.UIAxes,gray);
+
             for fidx=1:size(app.input_video,3)
                 set(im(1),'cdata',app.input_video(:,:,fidx));
-                colormap(gray);
                 pause(1/60);
             end
         end
@@ -246,6 +252,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             app.UIAxes_2.YLim = [0 app.io_params.rows];
             
             im(1) = imagesc(app.UIAxes,app.dbg_video(:,:,1));
+            colormap(app.UIAxes,gray);
             im(2) = imagesc(app.UIAxes_2,app.event_video(:,:,:,1));
             
             for fidx  = 1:size(app.dbg_video,3)
@@ -296,7 +303,7 @@ classdef RetinoSimGUI < matlab.apps.AppBase
             % Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1386 862];
-            app.UIFigure.Name = 'RetinoSim v0.0';
+            app.UIFigure.Name = 'RetinoSim v0.1';
 
             % Create UIAxes
             app.UIAxes = uiaxes(app.UIFigure);
