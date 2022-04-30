@@ -65,8 +65,8 @@ if customize_params == 1
     params.enable_sequentialOMS             = 0; % in-progress
     params.dbg_mode                         = 'on_neuron';
 
-    params.resample_threshold               = 0;
-    params.rng_settings                     = 0;
+    params.resample_threshold               = 0; % in-progress
+    params.rng_settings                     = 0; % in-progress
     
     params.debug_pixel                      = [256 256];
     
