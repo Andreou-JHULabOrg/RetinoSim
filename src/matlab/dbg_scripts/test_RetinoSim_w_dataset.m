@@ -1,4 +1,4 @@
-%% Debug script for RetinoSim
+ %% Debug script for RetinoSim
 %%% Description: Top script to match to ETH dataset
 %%% Author: Jonah P. Sengupta
 %%% Date: 04-13-2022
@@ -86,9 +86,12 @@ plotRetinoOutput(dbgFrames,eventFrames, params);
 
 %%
 
+ts = 44066;
+showFrame = 1;
+bin_mode = 'time';
 
 [TD_real] = loadAEFile('../../../../AER_Data/eth_rpg_dataset/events_5s.txt');
-eventFrames_real = makeFrames(TD_real, 'time', 44066, 1); %fs set to value in images.txt
+eventFrames_real = makeFrames(TD_real, bin_mode,ts , showFrame); %fs set to value in images.txt
 
 
 %%
@@ -105,6 +108,3 @@ imagesc(eventFrames_real(:,:,:,fnum));
 figure();
 
 imagesc(eventFrames(:,:,:,fnum));
-
-err_frame = eventFrames(:,:,:,fnum)-eventFrames_real(:,:,:,fnum);
-imagesc(err_frame)
