@@ -135,6 +135,12 @@ This script shows how to import frames and events from an existing dataset and d
 
 `params.rng_settings` (*boolean, nom. = 1*)
 
+## Issues and Contact
+
+For any bugs, please post an issue and take a look at the problem. For future features, look at issues currently under the enhancement label. Create a branck, add feature and we can review the addition. 
+
+For any concerns or comment, please reach out to Jonah on his email : jsengup1@jhu.edu
+
 
 
 
